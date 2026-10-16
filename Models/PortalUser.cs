@@ -21,5 +21,12 @@ namespace QMSApplication.Models
         public string Role { get; set; } = "User";
 
         public bool IsActive { get; set; } = true;
+        [MaxLength(255)]
+        public string? PasswordHash { get; set; }
+        [MaxLength(200)]
+        public string? Email { get; set; }
+
+        [MaxLength(20)]
+        public string? MobileNumber { get; set; }
     }
 }

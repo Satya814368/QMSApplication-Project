@@ -1,11 +1,22 @@
-using ClosedXML.Excel;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using QMSApplication.Models;
 
 namespace QMSApplication.Pages
 {
     public class LoginModel : PageModel
     {
+        private readonly QMSPortalDbContext _db;
+        private readonly PasswordHasher<PortalUser> _passwordHasher;
+
+        public LoginModel(QMSPortalDbContext db)
+        {
+            _db = db;
+            _passwordHasher = new PasswordHasher<PortalUser>();
+        }
+
         [BindProperty]
         public string? Username { get; set; }
 
@@ -14,16 +25,12 @@ namespace QMSApplication.Pages
 
         public string? Message { get; set; }
 
-        private readonly string ExcelFilePath =
-            @"C:\QMSData\Users.xlsx";
-
         public void OnGet()
         {
         }
 
-        public IActionResult OnPost()
+        public async Task<IActionResult> OnPostAsync()
         {
-            // Username validation
             if (string.IsNullOrWhiteSpace(Username))
             {
                 ModelState.AddModelError(
@@ -33,7 +40,6 @@ namespace QMSApplication.Pages
                 return Page();
             }
 
-            // Password validation
             if (string.IsNullOrWhiteSpace(Password))
             {
                 ModelState.AddModelError(
@@ -43,149 +49,51 @@ namespace QMSApplication.Pages
                 return Page();
             }
 
-            // Check Excel file
-            if (!System.IO.File.Exists(ExcelFilePath))
+            var username = Username.Trim();
+
+            var user = await _db.PortalUsers
+                .FirstOrDefaultAsync(u =>
+                    u.Username == username && u.IsActive);
+
+            if (user == null ||
+                string.IsNullOrWhiteSpace(user.PasswordHash))
             {
-                Message = "User workbook could not be found.";
-                return Page();
-            }
-
-            try
-            {
-                using var workbook = new XLWorkbook(ExcelFilePath);
-
-                var worksheet = workbook.Worksheet(1);
-
-                var firstRow = worksheet.FirstRowUsed();
-
-                if (firstRow == null)
-                {
-                    Message = "Users.xlsx is empty.";
-                    return Page();
-                }
-
-                int usernameColumn = 0;
-                int passwordColumn = 0;
-                int firstNameColumn = 0;
-                int roleColumn = 0;
-
-                // Find columns using the Excel headers
-                foreach (var cell in firstRow.CellsUsed())
-                {
-                    string header = cell.GetString().Trim();
-
-                    if (header.Equals(
-                        "Username",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        usernameColumn = cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "Password",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        passwordColumn = cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "FirstName",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        firstNameColumn = cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "Role",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        roleColumn = cell.Address.ColumnNumber;
-                    }
-                }
-
-                if (usernameColumn == 0 || passwordColumn == 0)
-                {
-                    Message =
-                        "Username or Password column is missing in Users.xlsx.";
-
-                    return Page();
-                }
-
-                // Check each user
-                foreach (var row in worksheet.RowsUsed().Skip(1))
-                {
-                    string excelUsername =
-                        row.Cell(usernameColumn).GetString().Trim();
-
-                    string excelPassword =
-                        row.Cell(passwordColumn).GetString().Trim();
-
-                    if (string.Equals(
-                            excelUsername,
-                            Username.Trim(),
-                            StringComparison.OrdinalIgnoreCase)
-                        &&
-                        excelPassword == Password)
-                    {
-                        string firstName = Username.Trim();
-
-                        if (firstNameColumn != 0)
-                        {
-                            string excelFirstName =
-                                row.Cell(firstNameColumn).GetString().Trim();
-
-                            if (!string.IsNullOrWhiteSpace(excelFirstName))
-                            {
-                                firstName = excelFirstName;
-                            }
-                        }
-
-                        // Get user role
-                        string role = "User";
-
-                        if (roleColumn != 0)
-                        {
-                            string excelRole =
-                                row.Cell(roleColumn).GetString().Trim();
-
-                            if (!string.IsNullOrWhiteSpace(excelRole))
-                            {
-                                role = excelRole;
-                            }
-                        }
-
-                        // Store logged-in user in session
-                        
-                        HttpContext.Session.SetString(
-                            "Username",
-                            Username.Trim());
-
-                        // Store logged-in user's first name in session
-                        HttpContext.Session.SetString(
-                            "LoggedInUser",
-                            firstName);
-
-                        // Store user role in session
-                        HttpContext.Session.SetString(
-                            "UserRole",
-                            role);
-
-                        // Login successful
-                        return RedirectToPage("/Welcome");
-                    }
-                }
-
-                // Invalid credentials
                 Message = "Invalid username or password.";
-
                 return Page();
             }
-            catch
+
+            var result = _passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                Password);
+
+            if (result == PasswordVerificationResult.Failed)
             {
-                Message = "Unable to read the user workbook.";
-
+                Message = "Invalid username or password.";
                 return Page();
             }
+
+            var firstName = user.FullName.Trim();
+
+            if (string.IsNullOrWhiteSpace(firstName))
+            {
+                firstName = user.Username;
+            }
+            else
+            {
+                // If FullName contains multiple words, use the first one.
+                firstName = firstName.Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries)[0];
+            }
+
+            HttpContext.Session.SetString("Username", user.Username);
+            HttpContext.Session.SetString("LoggedInUser", firstName);
+            HttpContext.Session.SetString(
+                "UserRole",
+                string.IsNullOrWhiteSpace(user.Role) ? "User" : user.Role);
+
+            return RedirectToPage("/Welcome");
         }
     }
 }

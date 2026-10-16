@@ -1,0 +1,98 @@
+﻿
+@page
+@model QMSApplication.Pages.MDCreateModel
+
+@{
+    ViewData["Title"] = "Add New Deliverable";
+}
+
+<h2>Add New Deliverable</h2>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form method="post">
+    <div class="mb-3">
+        <label asp-for="Input.MilestoneName" class="form-label">Milestone Name</label>
+        <input asp-for="Input.MilestoneName" class="form-control" required />
+        <span asp-validation-for="Input.MilestoneName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.DeliverableName" class="form-label">Deliverable Name</label>
+        <input asp-for="Input.DeliverableName" class="form-control" required />
+        <span asp-validation-for="Input.DeliverableName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.DeliverableType" class="form-label">Deliverable Type</label>
+        <select asp-for="Input.DeliverableType" class="form-select" required>
+            <option value="">-- Select Type --</option>
+            <option value="UGs">UGs</option>
+            <option value="Clarification Doc">Clarification Doc</option>
+            <option value="Data Sheets">Data Sheets</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.MilestoneTargetDate" class="form-label">Milestone Target Date</label>
+        <input asp-for="Input.MilestoneTargetDate" type="date" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.DeliverableTargetDate" class="form-label">Deliverable Target Date</label>
+        <input asp-for="Input.DeliverableTargetDate" type="date" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.AssignedTo" class="form-label">Assigned To</label>
+        <input asp-for="Input.AssignedTo" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.Status" class="form-label">Status</label>
+        <select asp-for="Input.Status" class="form-select" required>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Deferred">Deferred</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.ScheduleDeviation" class="form-label">Schedule Deviation</label>
+        <select asp-for="Input.ScheduleDeviation" class="form-select" required>
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.DeliverableActivity" class="form-label">Deliverable Activity</label>
+        <select asp-for="Input.DeliverableActivity" class="form-select">
+            <option value="">-- Select Activity --</option>
+            <option value="GN">GN</option>
+            <option value="AdHoc">AdHoc</option>
+            <option value="Agile">Agile</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.DeviationReason" class="form-label">Deviation Reason</label>
+        <textarea asp-for="Input.DeviationReason" class="form-control"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.Remarks" class="form-label">Remarks</label>
+        <textarea asp-for="Input.Remarks" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Deliverable</button>
+    <a asp-page="/MD" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

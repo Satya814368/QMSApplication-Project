@@ -6,40 +6,64 @@
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
     var module = Context.Request.Query["module"].ToString();
 
-    var currentUsername =
-        Context.Session.GetString("Username");
+    var navigationPages = new[]
+    {
+        (Title: "Dashboard", Url: "/Dashboard"),
+        (Title: "M & D", Url: "/MD"),
+        (Title: "Reports", Url: "/ComingSoon?module=Reports"),
+        (Title: "My Tasks", Url: "/ComingSoon?module=MyTasks"),
+        (Title: "My Team", Url: "/ComingSoon?module=MyTeam"),
+        (Title: "Changes", Url: "/ComingSoon?module=Changes"),
+        (Title: "Time Sheets", Url: "/ComingSoon?module=TimeSheets"),
+        (Title: "Guidelines", Url: "/Guidelines"),
+        (Title: "Settings", Url: "/ComingSoon?module=Settings")
+    };
 
-    var currentUserRole =
-        Context.Session.GetString("UserRole");
+    var currentUrl = Context.Request.Path.Value?.TrimEnd('/') ?? "/";
+
+    var currentIndex = Array.FindIndex(
+        navigationPages,
+        page =>
+        {
+            var pagePath = page.Url.Split('?')[0];
+
+            if (!string.Equals(pagePath, currentUrl, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (!page.Url.Contains('?'))
+                return true;
+
+            var pageModule = page.Url.Split('?')[1].Split('=')[1];
+
+            return string.Equals(
+                pageModule, module, StringComparison.OrdinalIgnoreCase);
+        });
+
+    var currentUsername = Context.Session.GetString("Username");
+    var currentUserRole = Context.Session.GetString("UserRole");
 
     var unreadNotificationCount = 0;
 
     if (!string.IsNullOrWhiteSpace(currentUsername))
     {
-        var publishedNotificationIds =
-            await _db.Notifications
-                .Where(x =>
-                    x.IsPublished &&
-                    (
-                        string.IsNullOrEmpty(x.TargetRole) ||
-                        x.TargetRole == currentUserRole
-                    ))
-                .Select(x => x.Id)
-                .ToListAsync();
+        var publishedNotificationIds = await _db.Notifications
+            .Where(x =>
+                x.IsPublished &&
+                (string.IsNullOrEmpty(x.TargetRole) ||
+                 x.TargetRole == currentUserRole))
+            .Select(x => x.Id)
+            .ToListAsync();
 
         foreach (var notificationId in publishedNotificationIds)
         {
-            var status =
-                await _db.NotificationUserStatuses
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x =>
-                        x.Username == currentUsername &&
-                        x.NotificationId == notificationId);
+            var status = await _db.NotificationUserStatuses
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Username == currentUsername &&
+                    x.NotificationId == notificationId);
 
             if (status == null || !status.IsRead)
-            {
                 unreadNotificationCount++;
-            }
         }
     }
 
@@ -47,466 +71,513 @@
 
     if (!string.IsNullOrWhiteSpace(currentUsername))
     {
-        recentNotifications =
-            await _db.Notifications
-                .Where(x =>
-                    x.IsPublished &&
-                    (
-                        string.IsNullOrEmpty(x.TargetRole) ||
-                        x.TargetRole == currentUserRole
-                    ))
-                .OrderByDescending(x => x.NotificationDateUtc)
-                .Take(3)
-                .ToListAsync();
+        recentNotifications = await _db.Notifications
+            .Where(x =>
+                x.IsPublished &&
+                (string.IsNullOrEmpty(x.TargetRole) ||
+                 x.TargetRole == currentUserRole))
+            .OrderByDescending(x => x.NotificationDateUtc)
+            .Take(3)
+            .ToListAsync();
     }
 }
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
-
-    <title>
-        @ViewData["Title"] - Quality Management Portal
-    </title>
+    <title>@ViewData["Title"] - Quality Management Portal</title>
 
     <style>
+            * {
+                box-sizing: border-box;
+            }
 
-        * {
-            box-sizing: border-box;
-        }
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f6f9;
+            }
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-        }
+            /* SIDEBAR */
+            .portal-layout {
+                display: flex;
+                min-height: 100vh;
+            }
 
-        /* ================= SIDEBAR ================= */
+            .portal-sidebar {
+                width: 250px;
+                background-color: #123a72;
+                color: white;
+                padding: 20px 0;
+                flex-shrink: 0;
+            }
 
-        .portal-layout {
-            display: flex;
-            min-height: 100vh;
-        }
+            .portal-logo {
+                text-align: center;
+                padding: 15px;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
+            }
 
-        .portal-sidebar {
-            width: 250px;
-            background-color: #123a72;
-            color: white;
-            padding: 20px 0;
-            flex-shrink: 0;
-        }
+            .company-logo {
+                width: 150px;
+                height: auto;
+                display: block;
+                margin: auto;
+            }
 
-        .portal-logo {
-            text-align: center;
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
+            .portal-title {
+                text-align: center;
+                padding: 15px 10px;
+                color: #ffd700;
+                font-size: 16px;
+                font-weight: bold;
+            }
 
-        .company-logo {
-            width: 150px;
-            height: auto;
-            display: block;
-            margin: auto;
-        }
+            .portal-menu a {
+                display: block;
+                padding: 14px 25px;
+                color: white;
+                text-decoration: none;
+                font-size: 15px;
+            }
 
-        .portal-title {
-            text-align: center;
-            padding: 15px 10px;
-            color: #ffd700;
-            font-size: 16px;
-            font-weight: bold;
-        }
+                .portal-menu a:hover {
+                    background-color: #1d4f91;
+                }
 
-        .portal-menu a {
-            display: block;
-            padding: 14px 25px;
-            color: white;
-            text-decoration: none;
-            font-size: 15px;
-        }
+                .portal-menu a.active {
+                    background-color: #ffd700;
+                    color: #123a72;
+                    font-weight: bold;
+                }
 
-        .portal-menu a:hover {
-            background-color: #1d4f91;
-        }
+            /* MAIN AREA */
+            .portal-main {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
 
-        .portal-menu a.active {
-            background-color: #ffd700;
-            color: #123a72;
-            font-weight: bold;
-        }
+            /* HEADER */
+            .portal-header {
+                min-height: 70px;
+                background-color: white;
+                display: flex;
+                align-items: center;
+                padding: 0 30px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                position: relative;
+                gap: 20px;
+            }
 
-        /* ================= MAIN AREA ================= */
+            /* GLOBAL SEARCH */
+            .global-search {
+                flex: 1;
+                max-width: 460px;
+                min-width: 0;
+            }
 
-        .portal-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
+                .global-search form {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
 
-        /* ================= HEADER ================= */
+                .global-search input {
+                    flex: 1;
+                    min-width: 0;
+                    padding: 10px 14px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                }
 
-        .portal-header {
-            height: 70px;
-            background-color: white;
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: relative;
-        }
+                    .global-search input:focus {
+                        border-color: #123a72;
+                    }
 
-        /* ================= GLOBAL SEARCH ================= */
+                .global-search button {
+                    padding: 10px 15px;
+                    background-color: #123a72;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    white-space: nowrap;
+                }
 
-        .global-search {
-            flex: 1;
-            max-width: 400px;
-        }
+                    .global-search button:hover {
+                        background-color: #1d4f91;
+                    }
 
-        .global-search form {
-            width: 100%;
-        }
+            /* HEADER ACTIONS */
+            .header-actions {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                margin-left: auto;
+            }
 
-        .global-search input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
-        }
+            /* NOTIFICATIONS */
+            .notification-container {
+                position: relative;
+            }
 
-        /* ================= HEADER ACTIONS ================= */
+            .notification {
+                position: relative;
+                font-size: 22px;
+                color: #123a72;
+                cursor: pointer;
+                text-decoration: none;
+            }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-left: auto;
-        }
+            .notification-badge {
+                position: absolute;
+                top: -6px;
+                right: -8px;
+                background-color: #ffd700;
+                color: #123a72;
+                font-size: 10px;
+                font-weight: bold;
+                border-radius: 50%;
+                width: 17px;
+                height: 17px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        /* ================= NOTIFICATIONS ================= */
+            /* NOTIFICATION POPUP */
+            .notification-box {
+                display: none;
+                position: absolute;
+                top: 35px;
+                right: 0;
+                width: 320px;
+                max-height: 380px;
+                overflow-y: auto;
+                background-color: white;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                padding: 12px;
+                z-index: 1000;
+            }
 
-        .notification-container {
-            position: relative;
-        }
+            .notification-container:hover .notification-box {
+                display: block;
+            }
 
-        .notification {
-            position: relative;
-            font-size: 22px;
-            color: #123a72;
-            cursor: pointer;
-            text-decoration: none;
-        }
+            .notification-box > strong {
+                display: block;
+                color: #123a72;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
 
-        .notification-badge {
-            position: absolute;
-            top: -6px;
-            right: -8px;
-            background-color: #ffd700;
-            color: #123a72;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 50%;
-            width: 17px;
-            height: 17px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            .notification-item {
+                display: block;
+                padding: 10px;
+                margin-bottom: 8px;
+                background-color: #f4f6f9;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #333;
+                text-decoration: none;
+            }
 
-        /* ================= NOTIFICATION POPUP ================= */
+                .notification-item:hover {
+                    background-color: #e8edf5;
+                }
 
-        .notification-box {
-            display: none;
-            position: absolute;
-            top: 35px;
-            right: 0;
-            width: 320px;
-            max-height: 380px;
-            overflow-y: auto;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 12px;
-            z-index: 1000;
-        }
+                .notification-item strong {
+                    color: #123a72;
+                }
 
-        .notification-container:hover .notification-box {
-            display: block;
-        }
+                .notification-item small {
+                    display: block;
+                    margin-top: 5px;
+                    color: #666;
+                }
 
-        .notification-box > strong {
-            display: block;
-            color: #123a72;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
+            .show-more-notifications {
+                display: block;
+                text-align: center;
+                padding: 9px;
+                margin-top: 8px;
+                background-color: #123a72;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-size: 13px;
+            }
 
-        .notification-item {
-            display: block;
-            padding: 10px;
-            margin-bottom: 8px;
-            background-color: #f4f6f9;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #333;
-            text-decoration: none;
-        }
+                .show-more-notifications:hover {
+                    background-color: #1d4f91;
+                }
 
-        .notification-item:hover {
-            background-color: #e8edf5;
-        }
+            /* USER NAME */
+            .user-name {
+                font-weight: bold;
+                color: #123a72;
+            }
 
-        .notification-item strong {
-            color: #123a72;
-        }
+            /* LOGOUT */
+            .logout {
+                background-color: #123a72;
+                color: white;
+                padding: 9px 18px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
 
-        .notification-item small {
-            display: block;
-            margin-top: 5px;
-            color: #666;
-        }
+                .logout:hover {
+                    background-color: #1d4f91;
+                }
 
-        .show-more-notifications {
-            display: block;
-            text-align: center;
-            padding: 9px;
-            margin-top: 8px;
-            background-color: #123a72;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 13px;
-        }
+            /* PAGE CONTENT */
+            .portal-content {
+                flex: 1;
+                padding: 40px;
+            }
 
-        .show-more-notifications:hover {
-            background-color: #1d4f91;
-        }
+            /* PREVIOUS / NEXT BUTTONS */
+            .page-navigation {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-top: 30px;
+                padding: 20px 0 0;
+                border-top: 1px solid #e0e4ea;
+            }
 
-        /* ================= LOGGED-IN USER ================= */
+            .page-nav-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 110px;
+                padding: 10px 18px;
+                border: 1px solid #cbd2dc;
+                border-radius: 6px;
+                background: white;
+                color: #123a72;
+                font-size: 14px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: background-color 0.2s ease;
+            }
 
-        .user-name {
-            font-weight: bold;
-            color: #123a72;
-        }
+                .page-nav-button:hover {
+                    background-color: #edf2f8;
+                    text-decoration: none;
+                }
 
-        /* ================= LOGOUT ================= */
+               
+                .page-nav-button.next-button {
+                    background-color: #1f3c88;
+                    border-color: #1f3c88;
+                    color: white;
+                }
 
-        .logout {
-            background-color: #123a72;
-            color: white;
-            padding: 9px 18px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+                    .page-nav-button.next-button:hover {
+                        background-color: #162d69;
+                        border-color: #162d69;
+                    }
 
-        .logout:hover {
-            background-color: #1d4f91;
-        }
 
-        /* ================= PAGE CONTENT ================= */
+                .page-nav-button.disabled {
+                    opacity: 0.45;
+                    cursor: not-allowed;
+                }
 
-        .portal-content {
-            flex: 1;
-            padding: 40px;
-        }
+            .page-nav-title {
+                color: #667085;
+                font-size: 13px;
+                text-align: center;
+            }
 
-        /* ================= FOOTER ================= */
+            /* FOOTER */
+            .portal-footer {
+                text-align: center;
+                padding: 15px;
+                background-color: white;
+                color: #666;
+                font-size: 13px;
+            }
 
-        .portal-footer {
-            text-align: center;
-            padding: 15px;
-            background-color: white;
-            color: #666;
-            font-size: 13px;
-        }
+            @@media (max-width: 800px) {
+                .portal-sidebar {
+                    width: 200px;
+                }
 
+                .portal-header {
+                    padding: 12px 16px;
+                    flex-wrap: wrap;
+                    height: auto;
+                }
+
+                .header-actions {
+                    gap: 12px;
+                }
+
+                .portal-content {
+                    padding: 20px;
+                }
+            }
+
+            @@media (max-width: 600px) {
+                .portal-layout {
+                    flex-direction: column;
+                }
+
+                .portal-sidebar {
+                    width: 100%;
+                }
+
+                .portal-menu {
+                    display: flex;
+                    flex-wrap: wrap;
+                }
+
+                    .portal-menu a {
+                        padding: 10px 12px;
+                    }
+
+                .page-navigation {
+                    gap: 8px;
+                }
+
+                .page-nav-button {
+                    min-width: 0;
+                    padding: 10px 12px;
+                }
+
+                .page-nav-title {
+                    font-size: 12px;
+                }
+
+                .notification-box {
+                    right: -60px;
+                    width: min(320px, calc(100vw - 30px));
+                }
+            }
     </style>
-
 </head>
 
 <body>
-
     <div class="portal-layout">
 
-        <!-- ================= SIDEBAR ================= -->
-
+        <!-- SIDEBAR -->
         <aside class="portal-sidebar">
 
-            <!-- Company Logo -->
-
             <div class="portal-logo">
-
-                <img src="~/images/logo.png"
+                <img src="~/iray-logo.png"
                      alt="i-ray IT Solutions"
                      class="company-logo" />
-
             </div>
-
-            <!-- Portal Title -->
 
             <div class="portal-title">
-
                 Quality Management Portal
-
             </div>
 
-            <!-- Sidebar Navigation -->
-
             <nav class="portal-menu">
-
-                <!-- Dashboard -->
-
                 <a href="/Dashboard"
                    class="@(Context.Request.Path.Equals("/Dashboard", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-
                     Dashboard
-
                 </a>
-
-                <!-- M & D -->
 
                 <a href="/MD"
                    class="@(currentPage == "/MD" ? "active" : "")">
-
                     M &amp; D
-
                 </a>
 
-                <!-- Reports -->
-
-                <a href="/CompletedUG"
-                   class="@(currentPage == "/CompletedUG" ? "active" : "")">
-
+                <a href="/ComingSoon?module=Reports"
+                   class="@(currentPage == "/ComingSoon" && module == "Reports" ? "active" : "")">
                     Reports
-
                 </a>
-
-                <!-- My Tasks -->
 
                 <a href="/ComingSoon?module=MyTasks"
                    class="@(currentPage == "/ComingSoon" && module == "MyTasks" ? "active" : "")">
-
                     My Tasks
-
                 </a>
-
-                <!-- My Team -->
 
                 <a href="/ComingSoon?module=MyTeam"
                    class="@(currentPage == "/ComingSoon" && module == "MyTeam" ? "active" : "")">
-
                     My Team
-
                 </a>
-
-                <!-- Changes -->
 
                 <a href="/ComingSoon?module=Changes"
                    class="@(currentPage == "/ComingSoon" && module == "Changes" ? "active" : "")">
-
                     Changes
-
                 </a>
-
-                <!-- Time Sheets -->
 
                 <a href="/ComingSoon?module=TimeSheets"
                    class="@(currentPage == "/ComingSoon" && module == "TimeSheets" ? "active" : "")">
-
                     Time Sheets
-
                 </a>
-
-                <!-- Guidelines -->
 
                 <a href="/Guidelines"
                    class="@(currentPage == "/Guidelines" ? "active" : "")">
-
                     Guidelines
-
                 </a>
-
-                <!-- Settings -->
 
                 <a href="/ComingSoon?module=Settings"
                    class="@(currentPage == "/ComingSoon" && module == "Settings" ? "active" : "")">
-
                     Settings
-
                 </a>
-
             </nav>
-
         </aside>
 
-        <!-- ================= MAIN ================= -->
-
+        <!-- MAIN -->
         <main class="portal-main">
 
-            <!-- ================= HEADER ================= -->
-
+            <!-- HEADER -->
             <header class="portal-header">
 
-                <!-- Global Search -->
-
                 <div class="global-search">
-
-                    <form method="get"
-                          action="/GlobalSearch">
-
+                    <form method="get" action="/GlobalSearch">
                         <input type="text"
                                name="Query"
-                               placeholder="Global Search" />
+                               placeholder="Global Search"
+                               aria-label="Global Search" />
 
+                        <button type="submit"
+                                title="Search"
+                                aria-label="Search">
+                            &#128269; Search
+                        </button>
                     </form>
-
                 </div>
-
-                <!-- Header Actions -->
 
                 <div class="header-actions">
 
-                    <!-- ================= NOTIFICATION CONTAINER ================= -->
-
+                    <!-- NOTIFICATIONS -->
                     <div class="notification-container">
-
-                        <!-- Notification Bell -->
-
                         <a href="/Notifications"
                            class="notification"
                            title="Notifications">
-
                             🔔
-
                             <span class="notification-badge">
                                 @unreadNotificationCount
                             </span>
-
                         </a>
 
-                        <!-- ================= NOTIFICATION POPUP ================= -->
-
                         <div class="notification-box">
-
-                            <strong>
-                                Notifications
-                            </strong>
+                            <strong>Notifications</strong>
 
                             @if (recentNotifications.Count == 0)
                             {
                                 <div class="notification-item">
-
                                     No new notifications.
-
                                 </div>
                             }
                             else
@@ -520,28 +591,20 @@
                                                 x.NotificationId == notification.Id &&
                                                 x.Username == currentUsername);
 
-                                    <a href="/Notifications"
-                                       class="notification-item">
+                                    <a href="/Notifications" class="notification-item">
+                                        <strong>@notification.Title</strong>
 
-                                        <strong>
-                                            @notification.Title
-                                        </strong>
-
-                                        <div>
-                                            @notification.Message
-                                        </div>
+                                        <div>@notification.Message</div>
 
                                         <small>
                                             @notification.NotificationDateUtc
-                                                .ToLocalTime()
-                                                .ToString("dd-MMM-yyyy HH:mm")
+                                            .ToLocalTime()
+                                            .ToString("dd-MMM-yyyy HH:mm")
                                         </small>
 
                                         <div>
                                             Priority:
-                                            <strong>
-                                                @notification.Priority
-                                            </strong>
+                                            <strong>@notification.Priority</strong>
                                         </div>
 
                                         <div>
@@ -553,84 +616,93 @@
 
                                         <div>
                                             Mandatory:
-                                            @(notification.IsMandatory
-                                                ? "Yes"
-                                                : "No")
+                                            @(notification.IsMandatory ? "Yes" : "No")
                                         </div>
 
                                         @if (userNotificationStatus?.IsAcknowledged == true)
                                         {
-                                            <div>
-                                                ✓ Acknowledged
-                                            </div>
+                                            <div>✓ Acknowledged</div>
                                         }
-
                                     </a>
                                 }
                             }
 
-                            <!-- Show More -->
-
-                            <a href="/Notifications"
-                               class="show-more-notifications">
-
+                            <a href="/Notifications" class="show-more-notifications">
                                 Show More
-
                             </a>
-
                         </div>
-
                     </div>
 
-                    <!-- ================= LOGGED-IN USER ================= -->
-
+                    <!-- LOGGED-IN USER -->
                     <span class="user-name">
-
                         @Context.Session.GetString("LoggedInUser")
-
                     </span>
 
-                    <!-- ================= LOGOUT ================= -->
-
+                    <!-- LOGOUT -->
                     <form method="post"
                           asp-page="/Dashboard"
                           asp-page-handler="Logout">
-
-                        <button type="submit"
-                                class="logout">
-
+                        <button type="submit" class="logout">
                             Logout
-
                         </button>
-
                     </form>
-
                 </div>
-
             </header>
 
-            <!-- ================= PAGE CONTENT ================= -->
-
+            <!-- PAGE CONTENT -->
             <section class="portal-content">
-
                 @RenderBody()
 
+                @if (currentIndex >= 0)
+                {
+                    <nav class="page-navigation" aria-label="Page navigation">
+
+                        @if (currentIndex > 0)
+                        {
+                            <a class="page-nav-button previous-button"
+                               href="@navigationPages[currentIndex - 1].Url">
+                                &#8249; Previous
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-nav-button previous-button disabled"
+                                  aria-disabled="true">
+                                &#8249; Previous
+                            </span>
+                        }
+
+                        <span class="page-nav-title">
+                            @navigationPages[currentIndex].Title
+                        </span>
+
+                        @if (currentIndex < navigationPages.Length - 1)
+                        {
+                            <a class="page-nav-button next-button"
+                               href="@navigationPages[currentIndex + 1].Url">
+                                Next &#8250;
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-nav-button next-button disabled"
+                                  aria-disabled="true">
+                                Next &#8250;
+                            </span>
+                        }
+
+                    </nav>
+                }
             </section>
 
-            <!-- ================= FOOTER ================= -->
-
+            <!-- FOOTER -->
             <footer class="portal-footer">
-
                 © 2026 i-ray IT Solutions. All rights reserved.
-
             </footer>
 
         </main>
-
     </div>
 
     @await RenderSectionAsync("Scripts", required: false)
-
 </body>
-
 </html>

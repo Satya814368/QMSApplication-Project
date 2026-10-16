@@ -1,11 +1,22 @@
-using ClosedXML.Excel;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using QMSApplication.Models;
 
 namespace QMSApplication.Pages
 {
     public class RegisterModel : PageModel
     {
+        private readonly QMSPortalDbContext _db;
+        private readonly PasswordHasher<PortalUser> _passwordHasher;
+
+        public RegisterModel(QMSPortalDbContext db)
+        {
+            _db = db;
+            _passwordHasher = new PasswordHasher<PortalUser>();
+        }
+
         [BindProperty]
         public string? FirstName { get; set; }
 
@@ -28,13 +39,8 @@ namespace QMSApplication.Pages
         public string? Otp { get; set; }
 
         public string? Message { get; set; }
-
         public string? ErrorMessage { get; set; }
-
         public bool ShowOtpSection { get; set; }
-
-        private readonly string ExcelFilePath =
-            @"C:\QMSData\Users.xlsx";
 
         private const string DemoOtp = "123456";
 
@@ -42,189 +48,129 @@ namespace QMSApplication.Pages
         {
         }
 
-        public IActionResult OnPostSendOtp()
+        public async Task<IActionResult> OnPostSendOtpAsync()
         {
-            // Validate required fields
             if (string.IsNullOrWhiteSpace(FirstName))
-            {
-                ErrorMessage = "Please enter your first name.";
-                return Page();
-            }
+                return SetError("Please enter your first name.");
 
             if (string.IsNullOrWhiteSpace(LastName))
-            {
-                ErrorMessage = "Please enter your last name.";
-                return Page();
-            }
+                return SetError("Please enter your last name.");
 
             if (string.IsNullOrWhiteSpace(Username))
-            {
-                ErrorMessage = "Please enter your username.";
-                return Page();
-            }
+                return SetError("Please enter your username.");
 
             if (string.IsNullOrWhiteSpace(Password))
-            {
-                ErrorMessage = "Please enter your password.";
-                return Page();
-            }
+                return SetError("Please enter your password.");
+
+            if (Password.Length < 8)
+                return SetError("Password must contain at least 8 characters.");
 
             if (string.IsNullOrWhiteSpace(Email))
-            {
-                ErrorMessage = "Please enter your email.";
-                return Page();
-            }
+                return SetError("Please enter your email.");
 
             if (string.IsNullOrWhiteSpace(MobileNumber))
-            {
-                ErrorMessage = "Please enter your mobile number.";
-                return Page();
-            }
+                return SetError("Please enter your mobile number.");
 
-            if (!System.IO.File.Exists(ExcelFilePath))
-            {
-                ErrorMessage = "User workbook could not be found.";
-                return Page();
-            }
+            string username = Username.Trim();
+            string email = Email.Trim();
+            string mobile = MobileNumber.Trim();
 
-            try
-            {
-                using var workbook = new XLWorkbook(ExcelFilePath);
+            bool usernameExists = await _db.PortalUsers.AnyAsync(u =>
+                u.Username.ToLower() == username.ToLower());
 
-                var worksheet = workbook.Worksheet(1);
+            if (usernameExists)
+                return SetError("Username already exists.");
 
-                var firstRow = worksheet.FirstRowUsed();
+            bool emailExists = await _db.PortalUsers.AnyAsync(u =>
+                u.Email != null &&
+                u.Email.ToLower() == email.ToLower());
 
-                if (firstRow == null)
-                {
-                    ErrorMessage = "Users.xlsx is empty.";
-                    return Page();
-                }
+            if (emailExists)
+                return SetError("Email is already registered.");
 
-                int usernameColumn = 0;
+            bool mobileExists = await _db.PortalUsers.AnyAsync(u =>
+                u.MobileNumber == mobile);
 
-                foreach (var cell in firstRow.CellsUsed())
-                {
-                    string header = cell.GetString().Trim();
+            if (mobileExists)
+                return SetError("Mobile number is already registered.");
 
-                    if (header.Equals(
-                        "Username",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        usernameColumn = cell.Address.ColumnNumber;
-                        break;
-                    }
-                }
+            ShowOtpSection = true;
+            Message = "Your details have been accepted. Please enter the Demo OTP.";
 
-                if (usernameColumn == 0)
-                {
-                    ErrorMessage =
-                        "Username column is missing in Users.xlsx.";
-
-                    return Page();
-                }
-
-                // Check whether username already exists
-                foreach (var row in worksheet.RowsUsed().Skip(1))
-                {
-                    string existingUsername =
-                        row.Cell(usernameColumn).GetString().Trim();
-
-                    if (string.Equals(
-                        existingUsername,
-                        Username.Trim(),
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        ErrorMessage =
-                            "Username already exists.";
-
-                        return Page();
-                    }
-                }
-
-                ShowOtpSection = true;
-
-                Message =
-                    "Your details have been accepted. Please enter the Demo OTP.";
-
-                return Page();
-            }
-            catch
-            {
-                ErrorMessage =
-                    "Unable to read the user workbook.";
-
-                return Page();
-            }
+            return Page();
         }
 
-        public IActionResult OnPostRegister()
+        public async Task<IActionResult> OnPostRegisterAsync()
         {
             ShowOtpSection = true;
 
-            // OTP validation
-            if (string.IsNullOrWhiteSpace(Otp))
+            if (string.IsNullOrWhiteSpace(FirstName) ||
+                string.IsNullOrWhiteSpace(LastName) ||
+                string.IsNullOrWhiteSpace(Username) ||
+                string.IsNullOrWhiteSpace(Password) ||
+                string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(MobileNumber))
             {
-                ErrorMessage = "Please enter the OTP.";
+                ErrorMessage = "Registration details are missing. Please fill in all fields again.";
                 return Page();
             }
 
-            if (Otp.Trim() != DemoOtp)
+            if (Password.Length < 8)
+            {
+                ErrorMessage = "Password must contain at least 8 characters.";
+                return Page();
+            }
+
+            if (string.IsNullOrWhiteSpace(Otp) || Otp.Trim() != DemoOtp)
             {
                 ErrorMessage = "Invalid OTP.";
                 return Page();
             }
 
-            if (!System.IO.File.Exists(ExcelFilePath))
-            {
-                ErrorMessage = "User workbook could not be found.";
-                return Page();
-            }
+            string username = Username.Trim();
+            string email = Email.Trim();
+            string mobile = MobileNumber.Trim();
 
-            try
-            {
-                using var workbook = new XLWorkbook(ExcelFilePath);
+            bool usernameExists = await _db.PortalUsers.AnyAsync(u =>
+                u.Username.ToLower() == username.ToLower());
 
-                var worksheet = workbook.Worksheet(1);
+            bool emailExists = await _db.PortalUsers.AnyAsync(u =>
+                u.Email != null &&
+                u.Email.ToLower() == email.ToLower());
 
-                int nextRow =
-                    (worksheet.LastRowUsed()?.RowNumber() ?? 1) + 1;
+            bool mobileExists = await _db.PortalUsers.AnyAsync(u =>
+                u.MobileNumber == mobile);
 
-                // Save registration details
-                worksheet.Cell(nextRow, 1).Value =
-                    FirstName?.Trim();
-
-                worksheet.Cell(nextRow, 2).Value =
-                    LastName?.Trim();
-
-                worksheet.Cell(nextRow, 3).Value =
-                    Username?.Trim();
-
-                worksheet.Cell(nextRow, 4).Value =
-                    Password?.Trim();
-
-                worksheet.Cell(nextRow, 5).Value =
-                    Email?.Trim();
-
-                worksheet.Cell(nextRow, 6).Value =
-                    MobileNumber?.Trim();
-
-                // Phase 1 default role
-                worksheet.Cell(nextRow, 7).Value =
-                    "User";
-
-                workbook.Save();
-
-                // Registration completed
-                return RedirectToPage("/Login");
-            }
-            catch
+            if (usernameExists || emailExists || mobileExists)
             {
                 ErrorMessage =
-                    "Unable to save the registration details.";
-
+                    "Username, email, or mobile number is already registered. Please verify your details.";
                 return Page();
             }
+
+            var user = new PortalUser
+            {
+                Username = username,
+                FullName = FirstName.Trim() + " " + LastName.Trim(),
+                Email = email,
+                MobileNumber = mobile,
+                Role = "User",
+                IsActive = true
+            };
+
+            user.PasswordHash =
+                _passwordHasher.HashPassword(user, Password);
+
+            _db.PortalUsers.Add(user);
+            await _db.SaveChangesAsync();
+
+            return RedirectToPage("/Login");
+        }
+
+        private IActionResult SetError(string message)
+        {
+            ErrorMessage = message;
+            return Page();
         }
     }
 }

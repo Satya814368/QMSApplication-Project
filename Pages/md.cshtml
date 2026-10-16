@@ -14,11 +14,39 @@
         color: white;
         padding: 15px 20px;
         margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
         .md-title h1 {
             margin: 0;
             font-size: 24px;
+        }
+
+    /* Dashboard navigation arrow */
+    .dashboard-back {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        color: white;
+        text-decoration: none;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 5px;
+        flex-shrink: 0;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+        .dashboard-back:hover {
+            background-color: white;
+            color: #1f3c88;
+        }
+
+        .dashboard-back span {
+            font-size: 27px;
+            line-height: 1;
         }
 
     /* =========================
@@ -106,12 +134,49 @@
 
     .md-table-container {
         width: 100%;
-        max-height: 70vh;
-        overflow-x: auto;
-        overflow-y: auto;
+        height: 70vh;
+        overflow: auto;
         border: 1px solid #cccccc;
         background-color: white;
+        position: relative;
     }
+
+        .md-table-container.maximized {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            max-height: none;
+            z-index: 9999;
+            background: white;
+            border: none;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+            .md-table-container.maximized .md-table {
+                min-width: 2300px;
+            }
+
+    .md-table-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 6px;
+    }
+
+    .maximize-button {
+        background: #1f3c88;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 18px;
+    }
+
+        .maximize-button:hover {
+            background: #162d69;
+        }
 
     .md-table {
         border-collapse: separate;
@@ -211,12 +276,18 @@
 
 <div class="md-page">
 
-    <!-- PAGE TITLE -->
+    <!-- PAGE TITLE WITH DASHBOARD NAVIGATION -->
 
     <div class="md-title">
+        <a asp-page="/Dashboard"
+           class="dashboard-back"
+           title="Go to Dashboard"
+           aria-label="Go to Dashboard">
+            <span>&#8592;</span>
+        </a>
+
         <h1>Milestones &amp; Deliverables</h1>
     </div>
-
 
     <!-- SEARCH AND FILTERS -->
 
@@ -250,7 +321,6 @@
 
             </div>
 
-
             <!-- FILTERS -->
 
             <div class="filter-row">
@@ -283,7 +353,6 @@
 
                 </select>
 
-
                 <!-- Assigned To -->
 
                 <select name="AssignedToFilter"
@@ -311,7 +380,6 @@
                     }
 
                 </select>
-
 
                 <!-- Status -->
 
@@ -341,7 +409,6 @@
 
                 </select>
 
-
                 <!-- Deliverable Type -->
 
                 <select name="DeliverableTypeFilter"
@@ -369,7 +436,6 @@
                     }
 
                 </select>
-
 
                 <!-- Schedule Deviation -->
 
@@ -405,16 +471,62 @@
 
     </form>
 
+    <div style="margin: 15px 0; display: flex; justify-content: space-between;">
+        <a asp-page="/MDCreate"
+           class="button apply-button">
+            + Add New Deliverable
+        </a>
+    </div>
 
     <!-- M & D TABLE -->
     @if (Model.Records != null && Model.Records.Count > 0)
     {
-        <div class="md-table-container">
+        <div class="md-table-container" id="mdTableContainer">
+
+            <div class="md-table-toolbar">
+                <button type="button"
+                        id="maximizeMDTable"
+                        class="maximize-button"
+                        aria-label="Maximize M and D table"
+                        aria-pressed="false"
+                        title="Maximize table">
+                    ⛶
+                </button>
+            </div>
+
+            <script>
+                        (() => {
+                            const container = document.getElementById("mdTableContainer");
+                            const button = document.getElementById("maximizeMDTable");
+
+                            if (!container || !button) return;
+
+                            function toggleMaximize() {
+                                const maximized = container.classList.toggle("maximized");
+
+                                button.setAttribute("aria-pressed", String(maximized));
+                                button.setAttribute(
+                                    "aria-label",
+                                    maximized ? "Restore M and D table" : "Maximize M and D table"
+                                );
+                                button.title = maximized ? "Restore table" : "Maximize table";
+                                button.textContent = maximized ? "⛶ Restore" : "⛶";
+                            }
+
+                            button.addEventListener("click", toggleMaximize);
+
+                            document.addEventListener("keydown", event => {
+                                if (event.key === "Escape" &&
+                                    container.classList.contains("maximized")) {
+                                    toggleMaximize();
+                                }
+                            });
+                        })();
+            </script>
 
             <table class="md-table">
 
                 <thead>
-
                     <tr>
                         <th>Record ID</th>
                         <th>S.No</th>
@@ -435,7 +547,6 @@
                         <th>Actions</th>
                         <th>Due Status</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
@@ -509,7 +620,6 @@
                             </td>
 
                             <td>
-
                                 <a class="action-link"
                                    asp-page="/MDView"
                                    asp-route-id="@record.RecordID">
@@ -521,21 +631,15 @@
                                    asp-route-id="@record.RecordID">
                                     Edit
                                 </a>
-
                             </td>
 
                             <td>
-                               
-                              
-                               
-
-                               @if (record.IsOverdue)
+                                @if (record.IsOverdue)
                                 {
                                     <span class="overdue-indicator">
                                         Overdue
                                     </span>
                                 }
-
                             </td>
 
                         </tr>

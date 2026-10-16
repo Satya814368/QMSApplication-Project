@@ -8,6 +8,7 @@ using QMSApplication.Models;
 
 #nullable disable
 
+
 namespace QMSApplication.Migrations
 {
     [DbContext(typeof(QMSPortalDbContext))]
