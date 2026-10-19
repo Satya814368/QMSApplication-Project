@@ -24,7 +24,6 @@
             font-size: 24px;
         }
 
-    /* Dashboard navigation arrow */
     .dashboard-back {
         display: inline-flex;
         align-items: center;
@@ -48,10 +47,6 @@
             font-size: 27px;
             line-height: 1;
         }
-
-    /* =========================
-           SEARCH AND FILTERS
-           ========================= */
 
     .search-filter-box {
         background-color: white;
@@ -128,10 +123,6 @@
             background-color: #555555;
         }
 
-    /* =========================
-           TABLE
-           ========================= */
-
     .md-table-container {
         width: 100%;
         height: 70vh;
@@ -195,7 +186,6 @@
             white-space: nowrap;
         }
 
-        /* Sticky table header */
         .md-table thead th {
             position: sticky;
             top: 0;
@@ -213,7 +203,6 @@
             background-color: #eef3ff;
         }
 
-        /* Sticky Record ID */
         .md-table th:nth-child(1),
         .md-table td:nth-child(1) {
             position: sticky;
@@ -223,25 +212,15 @@
             min-width: 110px;
         }
 
-        /* Sticky S.No */
-        .md-table th:nth-child(2),
-        .md-table td:nth-child(2) {
-            position: sticky;
-            left: 110px;
-            z-index: 6;
-            background-color: white;
-            min-width: 70px;
-        }
+       
+       
 
-        /* Sticky header cells */
-        .md-table thead th:nth-child(1),
-        .md-table thead th:nth-child(2) {
+        .md-table thead th:nth-child(1){
             z-index: 20;
             background-color: #1f3c88;
         }
 
-        .md-table tbody tr:nth-child(even) td:nth-child(1),
-        .md-table tbody tr:nth-child(even) td:nth-child(2) {
+        .md-table tbody tr:nth-child(even) td:nth-child(1){
             background-color: #f8f9fa;
         }
 
@@ -249,7 +228,6 @@
         font-weight: bold;
     }
 
-    /* Actions */
     .action-link {
         display: inline-block;
         margin-right: 10px;
@@ -262,7 +240,23 @@
             text-decoration: underline;
         }
 
-    /* Red Overdue indicator */
+    /* Delete button */
+    .delete-button {
+        display: inline-block;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+        .delete-button:hover {
+            background-color: #b02a37;
+        }
+
     .overdue-indicator {
         color: red;
         font-weight: bold;
@@ -276,8 +270,6 @@
 
 <div class="md-page">
 
-    <!-- PAGE TITLE WITH DASHBOARD NAVIGATION -->
-
     <div class="md-title">
         <a asp-page="/Dashboard"
            class="dashboard-back"
@@ -290,19 +282,14 @@
     </div>
 
     <!-- SEARCH AND FILTERS -->
-
     <form method="get">
-
         <div class="search-filter-box">
 
             <div class="search-filter-title">
                 Search and Filters
             </div>
 
-            <!-- TEXT SEARCH -->
-
             <div class="search-row">
-
                 <input type="text"
                        name="Search"
                        value="@Model.Search"
@@ -318,157 +305,102 @@
                    class="button clear-button">
                     Clear
                 </a>
-
             </div>
-
-            <!-- FILTERS -->
 
             <div class="filter-row">
 
-                <!-- Milestone Name -->
-
                 <select name="MilestoneFilter"
                         class="filter-select">
-
                     <option value="">All Milestone Names</option>
 
                     @foreach (var item in Model.MilestoneNames)
                     {
-                        if (string.Equals(
-                            item,
-                            Model.MilestoneFilter,
+                        if (string.Equals(item, Model.MilestoneFilter,
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            <option value="@item" selected>
-                                @item
-                            </option>
+                            <option value="@item" selected>@item</option>
                         }
                         else
                         {
-                            <option value="@item">
-                                @item
-                            </option>
+                            <option value="@item">@item</option>
                         }
                     }
-
                 </select>
-
-                <!-- Assigned To -->
 
                 <select name="AssignedToFilter"
                         class="filter-select">
-
                     <option value="">All Assigned To</option>
 
                     @foreach (var item in Model.AssignedToNames)
                     {
-                        if (string.Equals(
-                            item,
-                            Model.AssignedToFilter,
+                        if (string.Equals(item, Model.AssignedToFilter,
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            <option value="@item" selected>
-                                @item
-                            </option>
+                            <option value="@item" selected>@item</option>
                         }
                         else
                         {
-                            <option value="@item">
-                                @item
-                            </option>
+                            <option value="@item">@item</option>
                         }
                     }
-
                 </select>
-
-                <!-- Status -->
 
                 <select name="StatusFilter"
                         class="filter-select">
-
                     <option value="">All Statuses</option>
 
                     @foreach (var item in Model.Statuses)
                     {
-                        if (string.Equals(
-                            item,
-                            Model.StatusFilter,
+                        if (string.Equals(item, Model.StatusFilter,
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            <option value="@item" selected>
-                                @item
-                            </option>
+                            <option value="@item" selected>@item</option>
                         }
                         else
                         {
-                            <option value="@item">
-                                @item
-                            </option>
+                            <option value="@item">@item</option>
                         }
                     }
-
                 </select>
-
-                <!-- Deliverable Type -->
 
                 <select name="DeliverableTypeFilter"
                         class="filter-select">
-
                     <option value="">All Deliverable Types</option>
 
                     @foreach (var item in Model.DeliverableTypes)
                     {
-                        if (string.Equals(
-                            item,
-                            Model.DeliverableTypeFilter,
+                        if (string.Equals(item, Model.DeliverableTypeFilter,
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            <option value="@item" selected>
-                                @item
-                            </option>
+                            <option value="@item" selected>@item</option>
                         }
                         else
                         {
-                            <option value="@item">
-                                @item
-                            </option>
+                            <option value="@item">@item</option>
                         }
                     }
-
                 </select>
-
-                <!-- Schedule Deviation -->
 
                 <select name="ScheduleDeviationFilter"
                         class="filter-select">
-
                     <option value="">All Schedule Deviations</option>
 
                     @foreach (var item in Model.ScheduleDeviations)
                     {
-                        if (string.Equals(
-                            item,
-                            Model.ScheduleDeviationFilter,
+                        if (string.Equals(item, Model.ScheduleDeviationFilter,
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            <option value="@item" selected>
-                                @item
-                            </option>
+                            <option value="@item" selected>@item</option>
                         }
                         else
                         {
-                            <option value="@item">
-                                @item
-                            </option>
+                            <option value="@item">@item</option>
                         }
                     }
-
                 </select>
 
             </div>
-
         </div>
-
     </form>
 
     <div style="margin: 15px 0; display: flex; justify-content: space-between;">
@@ -478,7 +410,7 @@
         </a>
     </div>
 
-    <!-- M & D TABLE -->
+    <!-- M&D TABLE -->
     @if (Model.Records != null && Model.Records.Count > 0)
     {
         <div class="md-table-container" id="mdTableContainer">
@@ -507,8 +439,11 @@
                                 button.setAttribute("aria-pressed", String(maximized));
                                 button.setAttribute(
                                     "aria-label",
-                                    maximized ? "Restore M and D table" : "Maximize M and D table"
+                                    maximized
+                                        ? "Restore M and D table"
+                                        : "Maximize M and D table"
                                 );
+
                                 button.title = maximized ? "Restore table" : "Maximize table";
                                 button.textContent = maximized ? "⛶ Restore" : "⛶";
                             }
@@ -525,11 +460,10 @@
             </script>
 
             <table class="md-table">
-
                 <thead>
                     <tr>
                         <th>Record ID</th>
-                        <th>S.No</th>
+                        
                         <th>Milestone Name</th>
                         <th>Deliverable Name</th>
                         <th>Deliverable Type</th>
@@ -550,75 +484,27 @@
                 </thead>
 
                 <tbody>
-
                     @foreach (var record in Model.Records)
                     {
                         <tr>
+                            <td class="record-id">@record.RecordID</td>
+                            
+                            <td>@record.MilestoneName</td>
+                            <td>@record.DeliverableName</td>
+                            <td>@record.DeliverableType</td>
+                            <td>@record.MilestoneTargetDate</td>
+                            <td>@record.DeliverableTargetDate</td>
+                            <td>@record.AssignedTo</td>
+                            <td>@record.ScheduleDeviation</td>
+                            <td>@record.DeliverableActivity</td>
+                            <td>@record.DeviationReason</td>
+                            <td>@record.DeliverableActualCompletedDate</td>
+                            <td>@record.MilestoneAchievedDate</td>
+                            <td>@record.Status</td>
+                            <td>@record.Remarks</td>
+                            <td>@record.UGs</td>
 
-                            <td class="record-id">
-                                @record.RecordID
-                            </td>
-
-                            <td>
-                                @record.SNo
-                            </td>
-
-                            <td>
-                                @record.MilestoneName
-                            </td>
-
-                            <td>
-                                @record.DeliverableName
-                            </td>
-
-                            <td>
-                                @record.DeliverableType
-                            </td>
-
-                            <td>
-                                @record.MilestoneTargetDate
-                            </td>
-
-                            <td>
-                                @record.DeliverableTargetDate
-                            </td>
-
-                            <td>
-                                @record.AssignedTo
-                            </td>
-
-                            <td>
-                                @record.ScheduleDeviation
-                            </td>
-
-                            <td>
-                                @record.DeliverableActivity
-                            </td>
-
-                            <td>
-                                @record.DeviationReason
-                            </td>
-
-                            <td>
-                                @record.DeliverableActualCompletedDate
-                            </td>
-
-                            <td>
-                                @record.MilestoneAchievedDate
-                            </td>
-
-                            <td>
-                                @record.Status
-                            </td>
-
-                            <td>
-                                @record.Remarks
-                            </td>
-
-                            <td>
-                                @record.UGs
-                            </td>
-
+                            <!-- VIEW, EDIT AND DELETE -->
                             <td>
                                 <a class="action-link"
                                    asp-page="/MDView"
@@ -631,6 +517,17 @@
                                    asp-route-id="@record.RecordID">
                                     Edit
                                 </a>
+
+                                <form method="post"
+                                      asp-page-handler="Delete"
+                                      asp-route-id="@record.RecordID"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Are you sure you want to delete record @record.RecordID?');">
+                                    <button type="submit"
+                                            class="delete-button">
+                                        Delete
+                                    </button>
+                                </form>
                             </td>
 
                             <td>
@@ -641,14 +538,10 @@
                                     </span>
                                 }
                             </td>
-
                         </tr>
                     }
-
                 </tbody>
-
             </table>
-
         </div>
     }
     else
@@ -657,5 +550,4 @@
             No M &amp; D records found for the selected search/filter criteria.
         </div>
     }
-
 </div>
