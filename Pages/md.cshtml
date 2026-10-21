@@ -212,15 +212,12 @@
             min-width: 110px;
         }
 
-       
-       
-
-        .md-table thead th:nth-child(1){
+        .md-table thead th:nth-child(1) {
             z-index: 20;
             background-color: #1f3c88;
         }
 
-        .md-table tbody tr:nth-child(even) td:nth-child(1){
+        .md-table tbody tr:nth-child(even) td:nth-child(1) {
             background-color: #f8f9fa;
         }
 
@@ -240,7 +237,6 @@
             text-decoration: underline;
         }
 
-    /* Delete button */
     .delete-button {
         display: inline-block;
         background-color: #dc3545;
@@ -399,6 +395,25 @@
                     }
                 </select>
 
+                <!-- DEPARTMENT NAME FILTER -->
+                <select name="DepartmentFilter"
+                        class="filter-select">
+                    <option value="">All Departments</option>
+
+                    @foreach (var item in Model.Departments)
+                    {
+                        if (string.Equals(item, Model.DepartmentFilter,
+                            StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+
             </div>
         </div>
     </form>
@@ -463,7 +478,7 @@
                 <thead>
                     <tr>
                         <th>Record ID</th>
-                        
+                        <th>Department Name</th>
                         <th>Milestone Name</th>
                         <th>Deliverable Name</th>
                         <th>Deliverable Type</th>
@@ -488,7 +503,7 @@
                     {
                         <tr>
                             <td class="record-id">@record.RecordID</td>
-                            
+                            <td>@record.DepartmentName</td>
                             <td>@record.MilestoneName</td>
                             <td>@record.DeliverableName</td>
                             <td>@record.DeliverableType</td>

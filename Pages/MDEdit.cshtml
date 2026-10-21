@@ -130,6 +130,21 @@
                         <label>S.No</label>
                         <input asp-for="Record.SNo" />
                     </div>
+                    
+<div class="field">
+    <label>Department Name</label>
+
+    <select asp-for="Record.DepartmentName" required>
+        <option value="">-- Select Department --</option>
+        <option value="FSW">FSW</option>
+        <option value="IS">IS</option>
+        <option value="Labeling">Labeling</option>
+        <option value="SV">SV</option>
+        <option value="S&R">S&amp;R</option>
+        <option value="App">App</option>
+        <option value="FWV">FWV</option>
+    </select>
+</div>
 
                     <div class="field">
                         <label>Milestone Name</label>

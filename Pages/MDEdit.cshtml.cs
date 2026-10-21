@@ -489,6 +489,8 @@ namespace QMSApplication.Pages
             // =========================================
             // UPDATE MYSQL ENTITY
             // =========================================
+            entity.DepartmentName =
+    Record.DepartmentName;
 
             entity.SNo =
                 Record.SNo;
@@ -600,7 +602,7 @@ namespace QMSApplication.Pages
                     NewValue = newValue
                 });
             }
-
+            AddAuditLog(nameof(MDEntity.DepartmentName), "Department Name");
             AddAuditLog(nameof(MDEntity.MilestoneName), "MilestoneName");
             AddAuditLog(nameof(MDEntity.DeliverableName), "DeliverableName");
             AddAuditLog(nameof(MDEntity.DeliverableType), "DeliverableType");
@@ -706,6 +708,9 @@ namespace QMSApplication.Pages
             {
                 RecordID =
                     entity.RecordID,
+
+                DepartmentName =
+        entity.DepartmentName,
                 ConcurrencyToken =
                     entity.ConcurrencyToken,
                 SNo =

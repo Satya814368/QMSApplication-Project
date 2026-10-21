@@ -13,6 +13,8 @@ namespace QMSApplication.Models
         [MaxLength(20)]
         public string RecordID { get; set; } = string.Empty;
 
+        [MaxLength(50)]
+        public string? DepartmentName { get; set; }
         public string? SNo { get; set; }
 
         public string? MilestoneName { get; set; }

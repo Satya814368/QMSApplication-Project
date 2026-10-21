@@ -24,6 +24,21 @@
     </div>
 
     <div class="mb-3">
+        <label asp-for="Input.DepartmentName" class="form-label">Department Name</label>
+        <select asp-for="Input.DepartmentName" class="form-select" required>
+            <option value="">-- Select Department --</option>
+            <option value="FSW">FSW</option>
+            <option value="IS">IS</option>
+            <option value="Labeling">Labeling</option>
+            <option value="SV">SV</option>
+            <option value="S&R">S&amp;R</option>
+            <option value="App">App</option>
+            <option value="FWV">FWV</option>
+        </select>
+        <span asp-validation-for="Input.DepartmentName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
         <label asp-for="Input.DeliverableType" class="form-label">Deliverable Type</label>
         <select asp-for="Input.DeliverableType" class="form-select" required>
             <option value="">-- Select Type --</option>
@@ -32,6 +47,7 @@
             <option value="Data Sheets">Data Sheets</option>
             <option value="Other">Other</option>
         </select>
+        <span asp-validation-for="Input.DeliverableType" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
@@ -42,46 +58,13 @@
     <div class="mb-3">
         <label asp-for="Input.DeliverableTargetDate" class="form-label">Deliverable Target Date</label>
         <input asp-for="Input.DeliverableTargetDate" type="date" class="form-control" required />
+        <span asp-validation-for="Input.DeliverableTargetDate" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
         <label asp-for="Input.AssignedTo" class="form-label">Assigned To</label>
         <input asp-for="Input.AssignedTo" class="form-control" required />
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.Status" class="form-label">Status</label>
-        <select asp-for="Input.Status" class="form-select" required>
-            <option value="Not Started">Not Started</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Deferred">Deferred</option>
-            <option value="Cancelled">Cancelled</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.ScheduleDeviation" class="form-label">Schedule Deviation</label>
-        <select asp-for="Input.ScheduleDeviation" class="form-select" required>
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.DeliverableActivity" class="form-label">Deliverable Activity</label>
-        <select asp-for="Input.DeliverableActivity" class="form-select">
-            <option value="">-- Select Activity --</option>
-            <option value="GN">GN</option>
-            <option value="AdHoc">AdHoc</option>
-            <option value="Agile">Agile</option>
-            <option value="Other">Other</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.DeviationReason" class="form-label">Deviation Reason</label>
-        <textarea asp-for="Input.DeviationReason" class="form-control"></textarea>
+        <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
     </div>
 
     <div class="mb-3">

@@ -52,7 +52,7 @@ namespace QMSApplication.Pages
             Record = new MDRecord
             {
                 RecordID = entity.RecordID,
-
+                DepartmentName = entity.DepartmentName,
                 SNo = entity.SNo,
 
                 MilestoneName =

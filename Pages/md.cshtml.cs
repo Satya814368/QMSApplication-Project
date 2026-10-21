@@ -15,7 +15,7 @@ namespace QMSApplication.Pages
             _db = db;
         }
 
-        public List<MDRecord> Records { get; set; } = new List<MDRecord>();
+        public List<MDRecord> Records { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
         public string? Search { get; set; }
@@ -35,28 +35,22 @@ namespace QMSApplication.Pages
         [BindProperty(SupportsGet = true)]
         public string? ScheduleDeviationFilter { get; set; }
 
+        [BindProperty(SupportsGet = true)]
+        public string? DepartmentFilter { get; set; }
+
         public List<string> MilestoneNames { get; set; } = new();
-
         public List<string> AssignedToNames { get; set; } = new();
-
         public List<string> Statuses { get; set; } = new();
-
         public List<string> DeliverableTypes { get; set; } = new();
-
         public List<string> ScheduleDeviations { get; set; } = new();
+        public List<string> Departments { get; set; } = new();
 
-
-        // =========================================
-        // GET M&D RECORDS
-        // =========================================
+        // GET M&D RECORDS AND APPLY FILTERS
         public void OnGet()
         {
             LoadRecords();
 
-            // =========================================
             // FILTER VALUES
-            // =========================================
-
             MilestoneNames = Records
                 .Select(x => x.MilestoneName)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -97,11 +91,15 @@ namespace QMSApplication.Pages
                 .OrderBy(x => x)
                 .ToList();
 
+            Departments = Records
+                .Select(x => x.DepartmentName)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
 
-            // =========================================
             // TEXT SEARCH
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(Search))
             {
                 string searchText = Search.Trim();
@@ -115,92 +113,74 @@ namespace QMSApplication.Pages
                     .ToList();
             }
 
-
-            // =========================================
             // MILESTONE FILTER
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(MilestoneFilter))
             {
                 Records = Records
-                    .Where(x =>
-                        string.Equals(
-                            x.MilestoneName?.Trim(),
-                            MilestoneFilter.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(x => string.Equals(
+                        x.MilestoneName?.Trim(),
+                        MilestoneFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
-
-            // =========================================
             // ASSIGNED TO FILTER
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(AssignedToFilter))
             {
                 Records = Records
-                    .Where(x =>
-                        string.Equals(
-                            x.AssignedTo?.Trim(),
-                            AssignedToFilter.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(x => string.Equals(
+                        x.AssignedTo?.Trim(),
+                        AssignedToFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
-
-            // =========================================
             // STATUS FILTER
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(StatusFilter))
             {
                 Records = Records
-                    .Where(x =>
-                        string.Equals(
-                            x.Status?.Trim(),
-                            StatusFilter.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(x => string.Equals(
+                        x.Status?.Trim(),
+                        StatusFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
-
-            // =========================================
             // DELIVERABLE TYPE FILTER
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(DeliverableTypeFilter))
             {
                 Records = Records
-                    .Where(x =>
-                        string.Equals(
-                            x.DeliverableType?.Trim(),
-                            DeliverableTypeFilter.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(x => string.Equals(
+                        x.DeliverableType?.Trim(),
+                        DeliverableTypeFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
-
-            // =========================================
             // SCHEDULE DEVIATION FILTER
-            // =========================================
-
             if (!string.IsNullOrWhiteSpace(ScheduleDeviationFilter))
             {
                 Records = Records
-                    .Where(x =>
-                        string.Equals(
-                            x.ScheduleDeviation?.Trim(),
-                            ScheduleDeviationFilter.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(x => string.Equals(
+                        x.ScheduleDeviation?.Trim(),
+                        ScheduleDeviationFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            // DEPARTMENT FILTER
+            if (!string.IsNullOrWhiteSpace(DepartmentFilter))
+            {
+                Records = Records
+                    .Where(x => string.Equals(
+                        x.DepartmentName?.Trim(),
+                        DepartmentFilter.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
         }
 
-
-        // =========================================
         // DELETE ONLY THE SELECTED M&D RECORD
-        // =========================================
-
         public async Task<IActionResult> OnPostDeleteAsync(string? id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -209,7 +189,6 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
-            // Find exactly one record using its RecordID.
             var record = await _db.MDRecords
                 .FirstOrDefaultAsync(x => x.RecordID == id);
 
@@ -221,9 +200,7 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
-            // Remove only the matching record.
             _db.MDRecords.Remove(record);
-
             await _db.SaveChangesAsync();
 
             TempData["SuccessMessage"] =
@@ -232,11 +209,7 @@ namespace QMSApplication.Pages
             return RedirectToPage();
         }
 
-
-        // =========================================
         // CASE-INSENSITIVE SEARCH
-        // =========================================
-
         private static bool ContainsIgnoreCase(
             string? source,
             string searchText)
@@ -247,11 +220,7 @@ namespace QMSApplication.Pages
                        StringComparison.OrdinalIgnoreCase);
         }
 
-
-        // =========================================
         // LOAD RECORDS FROM MYSQL
-        // =========================================
-
         private void LoadRecords()
         {
             Records = _db.MDRecords
@@ -260,25 +229,19 @@ namespace QMSApplication.Pages
                 .Select(x => new MDRecord
                 {
                     RecordID = x.RecordID,
-
+                    DepartmentName = x.DepartmentName,
                     SNo = x.SNo,
 
                     MilestoneName = x.MilestoneName,
-
                     DeliverableName = x.DeliverableName,
-
                     DeliverableType = x.DeliverableType,
 
                     MilestoneTargetDate = x.MilestoneTargetDateSource,
-
                     DeliverableTargetDate = x.DeliverableTargetDateSource,
 
                     AssignedTo = x.AssignedTo,
-
                     ScheduleDeviation = x.ScheduleDeviation,
-
                     DeliverableActivity = x.DeliverableActivity,
-
                     DeviationReason = x.DeviationReason,
 
                     DeliverableActualCompletedDate =
@@ -287,40 +250,27 @@ namespace QMSApplication.Pages
                     MilestoneAchievedDate = x.MilestoneAchievedDateSource,
 
                     Status = x.Status,
-
                     Remarks = x.Remarks,
-
                     UGs = x.UGs
                 })
                 .ToList();
 
-
-            // =========================================
             // STATUS NORMALIZATION
-            // =========================================
-
             foreach (var record in Records)
             {
                 if (record.Status != null &&
-                    (
-                        record.Status.Equals(
-                            "Deffered",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        record.Status.Equals(
-                            "Defferred",
-                            StringComparison.OrdinalIgnoreCase)
-                    ))
+                    (record.Status.Equals(
+                         "Deffered",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     record.Status.Equals(
+                         "Defferred",
+                         StringComparison.OrdinalIgnoreCase)))
                 {
                     record.Status = "Deferred";
                 }
             }
 
-
-            // =========================================
             // OVERDUE CALCULATION
-            // =========================================
-
             foreach (var record in Records)
             {
                 record.IsOverdue = false;
@@ -347,5 +297,3 @@ namespace QMSApplication.Pages
         }
     }
 }
-
-

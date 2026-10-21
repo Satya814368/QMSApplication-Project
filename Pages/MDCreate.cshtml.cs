@@ -25,6 +25,8 @@ namespace QMSApplication.Pages
             public string MilestoneName { get; set; } = "";
 
             [Required]
+            public string DepartmentName { get; set; } = "";
+            [Required]
             public string DeliverableName { get; set; } = "";
 
             [Required]
@@ -144,6 +146,7 @@ namespace QMSApplication.Pages
                 var entity = new MDEntity
                 {
                     RecordID = recordId,
+                    DepartmentName = Input.DepartmentName.Trim(),
                     SNo = nextSNo.ToString(),
                     MilestoneName = Input.MilestoneName.Trim(),
                     DeliverableName = Input.DeliverableName.Trim(),

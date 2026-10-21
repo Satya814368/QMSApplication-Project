@@ -8,7 +8,6 @@ using QMSApplication.Models;
 
 #nullable disable
 
-
 namespace QMSApplication.Migrations
 {
     [DbContext(typeof(QMSPortalDbContext))]
@@ -235,6 +234,10 @@ namespace QMSApplication.Migrations
                     b.Property<string>("DeliverableType")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("DepartmentName")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<string>("DeviationReason")
                         .HasColumnType("longtext");
 
@@ -389,6 +392,10 @@ namespace QMSApplication.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -396,6 +403,14 @@ namespace QMSApplication.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MobileNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("Role")
                         .IsRequired()
