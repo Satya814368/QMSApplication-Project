@@ -17,10 +17,6 @@ namespace QMSApplication.Models
 
         public string? MilestoneName { get; set; }
 
-        [Required]
-        [MaxLength(50)]
-        public string Department { get; set; } = string.Empty;
-
         public string? DeliverableName { get; set; }
 
         public string? DeliverableType { get; set; }

@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -46,9 +45,6 @@ namespace QMSApplication.Pages
         public List<string> ScheduleDeviations { get; set; } = new();
 
 
-        // =========================================
-        // GET M&D RECORDS
-        // =========================================
         public void OnGet()
         {
             LoadRecords();
@@ -65,6 +61,7 @@ namespace QMSApplication.Pages
                 .OrderBy(x => x)
                 .ToList();
 
+
             AssignedToNames = Records
                 .Select(x => x.AssignedTo)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -72,6 +69,7 @@ namespace QMSApplication.Pages
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(x => x)
                 .ToList();
+
 
             Statuses = Records
                 .Select(x => x.Status)
@@ -81,6 +79,7 @@ namespace QMSApplication.Pages
                 .OrderBy(x => x)
                 .ToList();
 
+
             DeliverableTypes = Records
                 .Select(x => x.DeliverableType)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -88,6 +87,7 @@ namespace QMSApplication.Pages
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(x => x)
                 .ToList();
+
 
             ScheduleDeviations = Records
                 .Select(x => x.ScheduleDeviation)
@@ -108,10 +108,21 @@ namespace QMSApplication.Pages
 
                 Records = Records
                     .Where(x =>
-                        ContainsIgnoreCase(x.MilestoneName, searchText) ||
-                        ContainsIgnoreCase(x.DeliverableName, searchText) ||
-                        ContainsIgnoreCase(x.AssignedTo, searchText) ||
-                        ContainsIgnoreCase(x.Status, searchText))
+                        ContainsIgnoreCase(
+                            x.MilestoneName,
+                            searchText) ||
+
+                        ContainsIgnoreCase(
+                            x.DeliverableName,
+                            searchText) ||
+
+                        ContainsIgnoreCase(
+                            x.AssignedTo,
+                            searchText) ||
+
+                        ContainsIgnoreCase(
+                            x.Status,
+                            searchText))
                     .ToList();
             }
 
@@ -184,7 +195,8 @@ namespace QMSApplication.Pages
             // SCHEDULE DEVIATION FILTER
             // =========================================
 
-            if (!string.IsNullOrWhiteSpace(ScheduleDeviationFilter))
+            if (!string.IsNullOrWhiteSpace(
+                ScheduleDeviationFilter))
             {
                 Records = Records
                     .Where(x =>
@@ -194,42 +206,6 @@ namespace QMSApplication.Pages
                             StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
-        }
-
-
-        // =========================================
-        // DELETE ONLY THE SELECTED M&D RECORD
-        // =========================================
-
-        public async Task<IActionResult> OnPostDeleteAsync(string? id)
-        {
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                TempData["ErrorMessage"] = "Record ID is missing.";
-                return RedirectToPage();
-            }
-
-            // Find exactly one record using its RecordID.
-            var record = await _db.MDRecords
-                .FirstOrDefaultAsync(x => x.RecordID == id);
-
-            if (record == null)
-            {
-                TempData["ErrorMessage"] =
-                    $"Record {id} was not found. No records were deleted.";
-
-                return RedirectToPage();
-            }
-
-            // Remove only the matching record.
-            _db.MDRecords.Remove(record);
-
-            await _db.SaveChangesAsync();
-
-            TempData["SuccessMessage"] =
-                $"Record {id} was deleted successfully.";
-
-            return RedirectToPage();
         }
 
 
@@ -263,34 +239,47 @@ namespace QMSApplication.Pages
 
                     SNo = x.SNo,
 
-                    MilestoneName = x.MilestoneName,
+                    MilestoneName =
+                        x.MilestoneName,
 
-                    DeliverableName = x.DeliverableName,
+                    DeliverableName =
+                        x.DeliverableName,
 
-                    DeliverableType = x.DeliverableType,
+                    DeliverableType =
+                        x.DeliverableType,
 
-                    MilestoneTargetDate = x.MilestoneTargetDateSource,
+                    MilestoneTargetDate =
+                        x.MilestoneTargetDateSource,
 
-                    DeliverableTargetDate = x.DeliverableTargetDateSource,
+                    DeliverableTargetDate =
+                        x.DeliverableTargetDateSource,
 
-                    AssignedTo = x.AssignedTo,
+                    AssignedTo =
+                        x.AssignedTo,
 
-                    ScheduleDeviation = x.ScheduleDeviation,
+                    ScheduleDeviation =
+                        x.ScheduleDeviation,
 
-                    DeliverableActivity = x.DeliverableActivity,
+                    DeliverableActivity =
+                        x.DeliverableActivity,
 
-                    DeviationReason = x.DeviationReason,
+                    DeviationReason =
+                        x.DeviationReason,
 
                     DeliverableActualCompletedDate =
                         x.DeliverableActualCompletedDateSource,
 
-                    MilestoneAchievedDate = x.MilestoneAchievedDateSource,
+                    MilestoneAchievedDate =
+                        x.MilestoneAchievedDateSource,
 
-                    Status = x.Status,
+                    Status =
+                        x.Status,
 
-                    Remarks = x.Remarks,
+                    Remarks =
+                        x.Remarks,
 
-                    UGs = x.UGs
+                    UGs =
+                        x.UGs
                 })
                 .ToList();
 
@@ -315,12 +304,6 @@ namespace QMSApplication.Pages
                     record.Status = "Deferred";
                 }
             }
-
-
-            // =========================================
-            // OVERDUE CALCULATION
-            // =========================================
-
             foreach (var record in Records)
             {
                 record.IsOverdue = false;
@@ -347,5 +330,3 @@ namespace QMSApplication.Pages
         }
     }
 }
-
-
