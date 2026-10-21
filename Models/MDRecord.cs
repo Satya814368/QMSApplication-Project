@@ -5,6 +5,7 @@
         public string? RecordID { get; set; }
         public string? SNo { get; set; }
         public string? MilestoneName { get; set; }
+        public string? Department { get; set; }
         public string? DeliverableName { get; set; }
         public string? DeliverableType { get; set; }
         public string? MilestoneTargetDate { get; set; }
