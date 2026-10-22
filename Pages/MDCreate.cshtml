@@ -1,4 +1,5 @@
-﻿@page
+﻿
+@page
 @model QMSApplication.Pages.MDCreateModel
 
 @{
@@ -7,41 +8,30 @@
 
 <h2>Add New Deliverable</h2>
 
-<p class="text-muted">
-    Fields marked with <span class="text-danger">*</span> are mandatory.
-</p>
-
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
 <form method="post">
-
     <div class="mb-3">
-        <label asp-for="Input.MilestoneName" class="form-label">
-            Milestone Name <span class="text-danger">*</span>
-        </label>
+        <label asp-for="Input.MilestoneName" class="form-label">Milestone Name</label>
         <input asp-for="Input.MilestoneName" class="form-control" required />
         <span asp-validation-for="Input.MilestoneName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Input.DeliverableName" class="form-label">
-            Deliverable Name <span class="text-danger">*</span>
-        </label>
+        <label asp-for="Input.DeliverableName" class="form-label">Deliverable Name</label>
         <input asp-for="Input.DeliverableName" class="form-control" required />
         <span asp-validation-for="Input.DeliverableName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Input.DepartmentName" class="form-label">
-            Department Name <span class="text-danger">*</span>
-        </label>
+        <label asp-for="Input.DepartmentName" class="form-label">Department Name</label>
         <select asp-for="Input.DepartmentName" class="form-select" required>
             <option value="">-- Select Department --</option>
             <option value="FSW">FSW</option>
             <option value="IS">IS</option>
             <option value="Labeling">Labeling</option>
             <option value="SV">SV</option>
-            <option value="S&amp;R">S&amp;R</option>
+            <option value="S&R">S&amp;R</option>
             <option value="App">App</option>
             <option value="FWV">FWV</option>
         </select>
@@ -49,9 +39,7 @@
     </div>
 
     <div class="mb-3">
-        <label asp-for="Input.DeliverableType" class="form-label">
-            Deliverable Type <span class="text-danger">*</span>
-        </label>
+        <label asp-for="Input.DeliverableType" class="form-label">Deliverable Type</label>
         <select asp-for="Input.DeliverableType" class="form-select" required>
             <option value="">-- Select Type --</option>
             <option value="UGs">UGs</option>
@@ -61,54 +49,31 @@
         </select>
         <span asp-validation-for="Input.DeliverableType" class="text-danger"></span>
     </div>
-    <div class="mb-3">
-        <label asp-for="Input.MilestoneTargetDate" class="form-label">
-            Milestone Target Date <span class="text-danger">*</span>
-        </label>
 
-        <input asp-for="Input.MilestoneTargetDate"
-               type="date"
-               class="form-control"
-               required />
-
-        <span asp-validation-for="Input.MilestoneTargetDate"
-              class="text-danger"></span>
-    </div>
     <div class="mb-3">
-        <label asp-for="Input.DeliverableTargetDate" class="form-label">
-            Deliverable Target Date <span class="text-danger">*</span>
-        </label>
-        <input asp-for="Input.DeliverableTargetDate"
-               type="date"
-               class="form-control"
-               required />
-        <span asp-validation-for="Input.DeliverableTargetDate"
-              class="text-danger"></span>
+        <label asp-for="Input.MilestoneTargetDate" class="form-label">Milestone Target Date</label>
+        <input asp-for="Input.MilestoneTargetDate" type="date" class="form-control" />
     </div>
 
     <div class="mb-3">
-        <label asp-for="Input.AssignedTo" class="form-label">
-            Assigned To <span class="text-danger">*</span>
-        </label>
+        <label asp-for="Input.DeliverableTargetDate" class="form-label">Deliverable Target Date</label>
+        <input asp-for="Input.DeliverableTargetDate" type="date" class="form-control" required />
+        <span asp-validation-for="Input.DeliverableTargetDate" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.AssignedTo" class="form-label">Assigned To</label>
         <input asp-for="Input.AssignedTo" class="form-control" required />
         <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Input.Remarks" class="form-label">
-            Remarks
-        </label>
+        <label asp-for="Input.Remarks" class="form-label">Remarks</label>
         <textarea asp-for="Input.Remarks" class="form-control"></textarea>
     </div>
 
-    <button type="submit" class="btn btn-primary">
-        Save Deliverable
-    </button>
-
-    <a asp-page="/MD" class="btn btn-secondary">
-        Cancel
-    </a>
-
+    <button type="submit" class="btn btn-primary">Save Deliverable</button>
+    <a asp-page="/MD" class="btn btn-secondary">Cancel</a>
 </form>
 
 @section Scripts {
