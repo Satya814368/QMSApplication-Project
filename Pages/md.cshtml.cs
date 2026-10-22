@@ -223,37 +223,48 @@ namespace QMSApplication.Pages
         // LOAD RECORDS FROM MYSQL
         private void LoadRecords()
         {
-            Records = _db.MDRecords
-                .AsNoTracking()
-                .OrderBy(x => x.Id)
-                .Select(x => new MDRecord
-                {
-                    RecordID = x.RecordID,
-                    DepartmentName = x.DepartmentName,
-                    SNo = x.SNo,
+            var entities = _db.MDRecords
+    .AsNoTracking()
+    .OrderBy(x => x.Id)
+    .ToList();
 
-                    MilestoneName = x.MilestoneName,
-                    DeliverableName = x.DeliverableName,
-                    DeliverableType = x.DeliverableType,
+            Records = entities.Select(x => new MDRecord
+            {
+                RecordID = x.RecordID,
+                DepartmentName = x.DepartmentName,
+                SNo = x.SNo,
 
-                    MilestoneTargetDate = x.MilestoneTargetDateSource,
-                    DeliverableTargetDate = x.DeliverableTargetDateSource,
+                MilestoneName = x.MilestoneName,
+                DeliverableName = x.DeliverableName,
+                DeliverableType = x.DeliverableType,
 
-                    AssignedTo = x.AssignedTo,
-                    ScheduleDeviation = x.ScheduleDeviation,
-                    DeliverableActivity = x.DeliverableActivity,
-                    DeviationReason = x.DeviationReason,
+                MilestoneTargetDate = x.MilestoneTargetDate.HasValue
+                    ? x.MilestoneTargetDate.Value.ToString("dd-MM-yyyy")
+                    : x.MilestoneTargetDateSource,
 
-                    DeliverableActualCompletedDate =
-                        x.DeliverableActualCompletedDateSource,
+                DeliverableTargetDate = x.DeliverableTargetDate.HasValue
+                    ? x.DeliverableTargetDate.Value.ToString("dd-MM-yyyy")
+                    : x.DeliverableTargetDateSource,
 
-                    MilestoneAchievedDate = x.MilestoneAchievedDateSource,
+                AssignedTo = x.AssignedTo,
+                ScheduleDeviation = x.ScheduleDeviation,
+                DeliverableActivity = x.DeliverableActivity,
+                DeviationReason = x.DeviationReason,
 
-                    Status = x.Status,
-                    Remarks = x.Remarks,
-                    UGs = x.UGs
-                })
-                .ToList();
+                DeliverableActualCompletedDate =
+                    x.DeliverableActualCompletedDate.HasValue
+                        ? x.DeliverableActualCompletedDate.Value.ToString("dd-MM-yyyy")
+                        : x.DeliverableActualCompletedDateSource,
+
+                MilestoneAchievedDate =
+                    x.MilestoneAchievedDate.HasValue
+                        ? x.MilestoneAchievedDate.Value.ToString("dd-MM-yyyy")
+                        : x.MilestoneAchievedDateSource,
+
+                Status = x.Status,
+                Remarks = x.Remarks,
+                UGs = x.UGs
+            }).ToList();
 
             // STATUS NORMALIZATION
             foreach (var record in Records)

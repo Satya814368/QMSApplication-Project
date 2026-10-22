@@ -32,6 +32,7 @@ namespace QMSApplication.Pages
             [Required]
             public string DeliverableType { get; set; } = "";
 
+            [Required]
             public DateOnly? MilestoneTargetDate { get; set; }
 
             [Required]
