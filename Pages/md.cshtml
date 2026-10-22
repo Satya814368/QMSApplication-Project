@@ -2,6 +2,40 @@
 @model QMSApplication.Pages.MDModel
 
 <style>
+
+
+
+/* Bulk Upload button */
+.bulk-upload-button {
+    display: inline-block;
+    padding: 10px 18px;
+    background-color: #198754;
+    color: #ffffff !important;
+    border: 1px solid #198754;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease,
+                border-color 0.2s ease;
+}
+
+.bulk-upload-button:hover {
+    background-color: #146c43;
+    border-color: #13653f;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.bulk-upload-button:focus-visible {
+    outline: 3px solid rgba(25, 135, 84, 0.35);
+    outline-offset: 2px;
+}
+
+
+
     .md-page {
         min-width: 1024px;
         width: 100%;
@@ -418,28 +452,17 @@
         </div>
     </form>
 
-    <div style="margin: 15px 0; display: flex; justify-content: space-between;">
-        <a asp-page="/MDCreate"
-           class="button apply-button">
-            + Add New Deliverable
-        </a>
-    </div>
+    <div style="margin: 15px 0; display: flex; gap: 12px; align-items: center;">
+    <a asp-page="/MDCreate"
+       class="button apply-button">
+        + Add New Deliverable
+    </a>
 
-    <!-- M&D TABLE -->
-    @if (Model.Records != null && Model.Records.Count > 0)
-    {
-        <div class="md-table-container" id="mdTableContainer">
-
-            <div class="md-table-toolbar">
-                <button type="button"
-                        id="maximizeMDTable"
-                        class="maximize-button"
-                        aria-label="Maximize M and D table"
-                        aria-pressed="false"
-                        title="Maximize table">
-                    ⛶
-                </button>
-            </div>
+    <a asp-page="/MDImport"
+       class="bulk-upload-button">
+        Bulk Upload
+    </a>
+</div>
 
             <script>
                         (() => {
