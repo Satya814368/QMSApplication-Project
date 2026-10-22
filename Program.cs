@@ -1,8 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QMSApplication.Models;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Increase the number of form values allowed for bulk operations
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueCountLimit = 10000;
+});
+
 builder.Services.AddDbContext<QMSPortalDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("QMSPortalDb"),
