@@ -209,7 +209,29 @@
             left: 0;
             z-index: 6;
             background-color: white;
+            min-width: 45px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .md-table th:nth-child(2),
+        .md-table td:nth-child(2) {
+            position: sticky;
+            left: 70px;
+            z-index: 5;
+            background-color: white;
             min-width: 110px;
+        }
+
+        .md-table thead th:nth-child(1),
+        .md-table thead th:nth-child(2) {
+            z-index: 20;
+            background-color: #1f3c88;
+        }
+
+        .md-table tbody tr:nth-child(even) td:nth-child(1),
+        .md-table tbody tr:nth-child(even) td:nth-child(2) {
+            background-color: #f8f9fa;
         }
 
         .md-table thead th:nth-child(1) {
@@ -264,6 +286,7 @@
     }
 </style>
 
+
 <div class="md-page">
 
     <div class="md-title">
@@ -276,6 +299,22 @@
 
         <h1>Milestones &amp; Deliverables</h1>
     </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div style="padding: 10px; margin-bottom: 12px; background: #d4edda; color: #155724; border-radius: 4px;">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div style="padding: 10px; margin-bottom: 12px; background: #f8d7da; color: #721c24; border-radius: 4px;">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+
 
     <!-- SEARCH AND FILTERS -->
     <form method="get">
@@ -418,12 +457,110 @@
         </div>
     </form>
 
-    <div style="margin: 15px 0; display: flex; justify-content: space-between;">
-        <a asp-page="/MDCreate"
-           class="button apply-button">
-            + Add New Deliverable
-        </a>
-    </div>
+    
+
+
+<div style="margin: 15px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <a asp-page="/MDCreate" class="button apply-button">
+        + Add New Deliverable
+    </a>
+
+    <a asp-page="/MDImport" class="button apply-button">
+        Bulk Upload
+    </a>
+
+    <form method="post"
+          asp-page-handler="BulkDelete"
+          id="bulkDeleteForm"
+          onsubmit="return confirmBulkDelete();"
+          style="display: inline-flex; align-items: center; gap: 10px; margin: 0;">
+
+        <button type="submit"
+                id="bulkDeleteButton"
+                class="delete-button"
+                disabled>
+            Delete Selected (<span id="selectedCount">0</span>)
+        </button>
+    </form>
+
+    <span style="color: #666; font-size: 13px;">
+        Select records using the checkboxes.
+    </span>
+</div>
+
+<script>
+    function updateSelectedCount() {
+        const checkboxes =
+            document.querySelectorAll(".record-checkbox");
+
+        const checked =
+            document.querySelectorAll(".record-checkbox:checked");
+
+        const selectAll =
+            document.getElementById("selectAllRecords");
+
+        const deleteButton =
+            document.getElementById("bulkDeleteButton");
+
+        const count =
+            document.getElementById("selectedCount");
+
+        if (!deleteButton || !count) return;
+
+        count.textContent = checked.length;
+        deleteButton.disabled = checked.length === 0;
+        deleteButton.style.opacity =
+            checked.length === 0 ? "0.6" : "1";
+
+        if (selectAll) {
+            selectAll.checked =
+                checkboxes.length > 0 &&
+                checked.length === checkboxes.length;
+
+            selectAll.indeterminate =
+                checked.length > 0 &&
+                checked.length < checkboxes.length;
+        }
+    }
+
+    function confirmBulkDelete() {
+        const count =
+            document.querySelectorAll(".record-checkbox:checked").length;
+
+        if (count === 0) {
+            alert("Please select at least one record.");
+            return false;
+        }
+
+        return confirm(
+            "Are you sure you want to permanently delete " +
+            count + " selected M&D record(s)?"
+        );
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".record-checkbox").forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateSelectedCount);
+        });
+
+        const selectAll =
+            document.getElementById("selectAllRecords");
+
+        if (selectAll) {
+            selectAll.addEventListener("change", function () {
+                document.querySelectorAll(".record-checkbox").forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                });
+
+                updateSelectedCount();
+            });
+        }
+
+        updateSelectedCount();
+    });
+</script>
+
+
 
     <!-- M&D TABLE -->
     @if (Model.Records != null && Model.Records.Count > 0)
@@ -477,6 +614,11 @@
             <table class="md-table">
                 <thead>
                     <tr>
+                        <th style="min-width: 45px;">
+                            <input type="checkbox"
+                                id="selectAllRecords"
+                                    title="Select all records" />
+                        </th>
                         <th>Record ID</th>
                         <th>Department Name</th>
                         <th>Milestone Name</th>
@@ -502,6 +644,14 @@
                     @foreach (var record in Model.Records)
                     {
                         <tr>
+                            <td>
+                                <input type="checkbox"
+                                       class="record-checkbox"
+                                       name="SelectedRecordIds"
+                                       value="@record.RecordID"
+                                       form="bulkDeleteForm"
+                                       aria-label="Select record @record.RecordID" />
+                            </td>
                             <td class="record-id">@record.RecordID</td>
                             <td>@record.DepartmentName</td>
                             <td>@record.MilestoneName</td>

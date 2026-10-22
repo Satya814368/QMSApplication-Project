@@ -15,10 +15,34 @@
     <strong>C:\QMSData\MilestoneDeliverables.xlsx</strong>
 </p>
 
-<form method="post">
-    <button type="submit">
-        Import M&D Records to MySQL
-    </button>
+<form method="post" enctype="multipart/form-data">
+    <div style="margin: 15px 0;">
+        <label for="excelFile">
+            Select Excel File (.xlsx):
+        </label>
+
+        <input type="file"
+               id="excelFile"
+               name="ExcelFile"
+               accept=".xlsx"
+               required />
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button type="submit">
+            Upload and Import M&D Records
+        </button>
+
+        <a asp-page="/md"
+           style="display: inline-block;
+                  padding: 8px 16px;
+                  background-color: #6c757d;
+                  color: white;
+                  text-decoration: none;
+                  border-radius: 4px;">
+            Go Back to M&D
+        </a>
+    </div>
 </form>
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))

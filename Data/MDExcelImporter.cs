@@ -9,30 +9,24 @@ namespace QMSApplication.Data
     {
         private readonly QMSPortalDbContext _db;
 
-        private readonly string _excelFilePath =
-            @"C:\QMSData\MilestoneDeliverables.xlsx";
 
         public MDExcelImporter(QMSPortalDbContext db)
         {
             _db = db;
         }
 
-        public async Task<int> ImportAsync()
+        public async Task<int> ImportAsync(IFormFile excelFile)
         {
-            if (!File.Exists(_excelFilePath))
-            {
-                throw new FileNotFoundException(
-                    "MilestoneDeliverables.xlsx could not be found.",
-                    _excelFilePath);
-            }
-
-            if (await _db.MDRecords.AnyAsync())
+            if (excelFile == null || excelFile.Length == 0)
             {
                 throw new InvalidOperationException(
-                    "M&D records already exist in MySQL. Import was not performed.");
+                    "Please select a valid Excel file.");
             }
 
-            using var workbook = new XLWorkbook(_excelFilePath);
+            
+
+            using var stream = excelFile.OpenReadStream();
+            using var workbook = new XLWorkbook(stream);
 
             var worksheet = workbook.Worksheets.FirstOrDefault();
 
@@ -77,7 +71,7 @@ namespace QMSApplication.Data
             var importBatch = new ImportBatch
             {
                 SourceFileName =
-                    Path.GetFileName(_excelFilePath),
+                    Path.GetFileName(excelFile.FileName),
 
                 ImportedAtUtc =
                     DateTime.UtcNow,
@@ -93,7 +87,29 @@ namespace QMSApplication.Data
 
             await _db.SaveChangesAsync();
 
-            int generatedRecordNumber = 0;
+            var existingRecordIds = await _db.MDRecords
+                .Select(r => r.RecordID)
+                .ToListAsync();
+
+            int highestRecordNumber = 0;
+
+            foreach (var existingId in existingRecordIds)
+            {
+                if (!string.IsNullOrWhiteSpace(existingId) &&
+                    existingId.StartsWith(
+                        "MD-",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    int.TryParse(existingId.Substring(3), out int number))
+                {
+                    if (number > highestRecordNumber)
+                    {
+                        highestRecordNumber = number;
+                    }
+                }
+            }
+
+            int generatedRecordNumber = highestRecordNumber;
+            int totalRecords = 0;
             int successfulRecords = 0;
             int exceptionCount = 0;
 
@@ -118,6 +134,7 @@ namespace QMSApplication.Data
                 }
 
                 generatedRecordNumber++;
+                totalRecords++;
 
                 string recordId =
                     $"MD-{generatedRecordNumber:0000}";
@@ -371,7 +388,7 @@ namespace QMSApplication.Data
              * Complete the ImportBatch.
              */
             importBatch.TotalRecords =
-                generatedRecordNumber;
+                totalRecords;
 
             importBatch.SuccessfulRecords =
                 successfulRecords;

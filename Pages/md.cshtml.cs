@@ -17,6 +17,9 @@ namespace QMSApplication.Pages
 
         public List<MDRecord> Records { get; set; } = new();
 
+        [BindProperty]
+        public List<string> SelectedRecordIds { get; set; } = new();
+
         [BindProperty(SupportsGet = true)]
         public string? Search { get; set; }
 
@@ -205,6 +208,54 @@ namespace QMSApplication.Pages
 
             TempData["SuccessMessage"] =
                 $"Record {id} was deleted successfully.";
+
+            return RedirectToPage();
+        }
+
+        
+        // DELETE MULTIPLE SELECTED M&D RECORDS
+        public async Task<IActionResult> OnPostBulkDeleteAsync()
+        {
+            if (SelectedRecordIds == null || SelectedRecordIds.Count == 0)
+            {
+                TempData["ErrorMessage"] =
+                    "Please select at least one record to delete.";
+
+                return RedirectToPage();
+            }
+
+            var selectedIds = SelectedRecordIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (selectedIds.Count == 0)
+            {
+                TempData["ErrorMessage"] =
+                    "No valid Record IDs were selected.";
+
+                return RedirectToPage();
+            }
+
+            var recordsToDelete = await _db.MDRecords
+                .Where(record => selectedIds.Contains(record.RecordID))
+                .ToListAsync();
+
+            if (recordsToDelete.Count == 0)
+            {
+                TempData["ErrorMessage"] =
+                    "None of the selected records were found. No records were deleted.";
+
+                return RedirectToPage();
+            }
+
+            _db.MDRecords.RemoveRange(recordsToDelete);
+
+            await _db.SaveChangesAsync();
+
+            TempData["SuccessMessage"] =
+                $"{recordsToDelete.Count} selected M&D record(s) deleted successfully.";
 
             return RedirectToPage();
         }
