@@ -143,3 +143,69 @@ body {
         font-size: 23px;
     }
 }
+
+
+
+
+/* M&D multiple-record selection */
+.select-column {
+    width: 42px;
+    min-width: 42px;
+    text-align: center;
+}
+
+.select-column input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #21418f;
+}
+
+.bulk-delete-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+
+#selectedRecordCount {
+    color: #555;
+    font-size: 13px;
+}
+
+.bulk-delete-toolbar form {
+    margin: 0;
+}
+
+.bulk-delete-button {
+    padding: 9px 16px;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    background-color: #dc3545;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bulk-delete-button:hover:not(:disabled) {
+    background-color: #b02a37;
+    border-color: #b02a37;
+}
+
+.bulk-delete-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bulk-delete-success {
+    color: #176b2c;
+    font-weight: 600;
+}
+
+.bulk-delete-error {
+    color: #b00020;
+    font-weight: 600;
+}

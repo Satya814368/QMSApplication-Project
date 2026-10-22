@@ -45,6 +45,10 @@ namespace QMSApplication.Pages
 
         public List<string> ScheduleDeviations { get; set; } = new();
 
+        [BindProperty]
+        public List<string> SelectedRecordIds { get; set; } = new();
+
+
 
         // =========================================
         // GET M&D RECORDS
@@ -231,6 +235,46 @@ namespace QMSApplication.Pages
 
             return RedirectToPage();
         }
+
+
+
+        public async Task<IActionResult> OnPostDeleteSelectedAsync()
+        {
+            // Remove blank IDs and duplicates from the submitted selection.
+            var selectedIds = SelectedRecordIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (selectedIds.Count == 0)
+            {
+                TempData["ErrorMessage"] = "Please select at least one record.";
+                return RedirectToPage();
+            }
+
+            // Retrieve only the selected records from MySQL.
+            var recordsToDelete = await _db.MDRecords
+                .Where(record => selectedIds.Contains(record.RecordID!))
+                .ToListAsync();
+
+            if (recordsToDelete.Count == 0)
+            {
+                TempData["ErrorMessage"] = "No matching records were found.";
+                return RedirectToPage();
+            }
+
+            // Delete all selected records in one save operation.
+            _db.MDRecords.RemoveRange(recordsToDelete);
+            await _db.SaveChangesAsync();
+
+            TempData["SuccessMessage"] =
+                $"{recordsToDelete.Count} record(s) deleted successfully.";
+
+            return RedirectToPage();
+        }
+
+
 
 
         // =========================================
