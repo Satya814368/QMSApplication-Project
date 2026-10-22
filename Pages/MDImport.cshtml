@@ -1,29 +1,47 @@
-﻿@page
+
+@page
 @model QMSApplication.Pages.MDImportModel
-
 @{
-    ViewData["Title"] = "M&D Import";
+    ViewData["Title"] = "Bulk Upload M&D Records";
 }
 
-<h2>M&D Excel Import</h2>
+<div class="md-import-container">
+    <h2 class="md-import-title">
+        Bulk Upload - Milestones &amp; Deliverables
+    </h2>
 
-<p>
-    This will import the M&D records from:
-</p>
 
-<p>
-    <strong>C:\QMSData\MilestoneDeliverables.xlsx</strong>
-</p>
 
-<form method="post">
-    <button type="submit">
-        Import M&D Records to MySQL
-    </button>
-</form>
+    <form method="post" enctype="multipart/form-data">
+        <label for="ExcelFile" class="excel-file-label">
+            Choose Excel file
+        </label>
 
-@if (!string.IsNullOrWhiteSpace(Model.Message))
-{
-    <p style="margin-top:20px; font-weight:bold;">
-        @Model.Message
-    </p>
-}
+        <input
+            id="ExcelFile"
+            name="ExcelFile"
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            required
+            class="excel-file-input" />
+
+        <div class="upload-actions">
+            <button type="submit" class="upload-excel-button">
+                Upload Excel
+            </button>
+
+            <a asp-page="/MD" class="back-to-md-button">
+                Back to M&amp;D
+            </a>
+        </div>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <p role="status"
+           class="upload-message @(Model.IsSuccess ? "success" : "error")">
+            @Model.Message
+        </p>
+    }
+</div>
+

@@ -17,22 +17,26 @@ namespace QMSApplication.Data
             _db = db;
         }
 
+        // Retain the existing fixed-file import entry point for compatibility.
         public async Task<int> ImportAsync()
         {
             if (!File.Exists(_excelFilePath))
             {
                 throw new FileNotFoundException(
-                    "MilestoneDeliverables.xlsx could not be found.",
-                    _excelFilePath);
+                    "MilestoneDeliverables.xlsx could not be found.", _excelFilePath);
             }
 
-            if (await _db.MDRecords.AnyAsync())
-            {
-                throw new InvalidOperationException(
-                    "M&D records already exist in MySQL. Import was not performed.");
-            }
+            await using var fileStream = File.OpenRead(_excelFilePath);
+            return await ImportAsync(fileStream, Path.GetFileName(_excelFilePath));
+        }
 
-            using var workbook = new XLWorkbook(_excelFilePath);
+        // Imports a user-selected Excel file and appends to existing records.
+        public async Task<int> ImportAsync(Stream excelStream, string sourceFileName)
+        {
+            if (excelStream == null || !excelStream.CanRead)
+                throw new InvalidOperationException("The uploaded Excel file could not be read.");
+
+            using var workbook = new XLWorkbook(excelStream);
 
             var worksheet = workbook.Worksheets.FirstOrDefault();
 
@@ -77,7 +81,7 @@ namespace QMSApplication.Data
             var importBatch = new ImportBatch
             {
                 SourceFileName =
-                    Path.GetFileName(_excelFilePath),
+                    Path.GetFileName(sourceFileName),
 
                 ImportedAtUtc =
                     DateTime.UtcNow,
@@ -93,7 +97,22 @@ namespace QMSApplication.Data
 
             await _db.SaveChangesAsync();
 
-            int generatedRecordNumber = 0;
+            // Continue after the highest existing MD-#### ID instead of restarting at MD-0001.
+            var existingRecordIds = await _db.MDRecords
+                .Select(x => x.RecordID)
+                .ToListAsync();
+
+            int generatedRecordNumber = existingRecordIds
+                .Select(id =>
+                {
+                    if (!string.IsNullOrWhiteSpace(id) &&
+                        id.StartsWith("MD-", StringComparison.OrdinalIgnoreCase) &&
+                        int.TryParse(id.Substring(3), out int number))
+                        return number;
+                    return 0;
+                })
+                .DefaultIfEmpty(0)
+                .Max();
             int successfulRecords = 0;
             int exceptionCount = 0;
 
@@ -119,8 +138,7 @@ namespace QMSApplication.Data
 
                 generatedRecordNumber++;
 
-                string recordId =
-                    $"MD-{generatedRecordNumber:0000}";
+                string recordId = $"MD-{generatedRecordNumber:0000}";
 
                 string sourceSNo =
                     row.Cell(1).GetString().Trim();
@@ -285,75 +303,75 @@ namespace QMSApplication.Data
                         recordId,
 
                     SNo =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(1).GetString()),
 
                     MilestoneName =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(2).GetString()),
 
                     DeliverableName =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(3).GetString()),
 
                     DeliverableType =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(4).GetString()),
 
                     MilestoneTargetDate =
                         milestoneTarget,
 
                     MilestoneTargetDateSource =
-                        NullIfEmpty(
+                        TextOrDash(
                             row.Cell(5).GetString()),
 
                     DeliverableTargetDate =
                         deliverableTarget,
 
                     DeliverableTargetDateSource =
-                        NullIfEmpty(
+                        TextOrDash(
                             row.Cell(6).GetString()),
 
                     AssignedTo =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(7).GetString()),
 
                     ScheduleDeviation =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             scheduleDeviation),
 
                     DeliverableActivity =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(9).GetString()),
 
                     DeviationReason =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(10).GetString()),
 
                     DeliverableActualCompletedDate =
                         actualCompleted,
 
                     DeliverableActualCompletedDateSource =
-                        NullIfEmpty(
+                        TextOrDash(
                             row.Cell(11).GetString()),
 
                     MilestoneAchievedDate =
                         milestoneAchieved,
 
                     MilestoneAchievedDateSource =
-                        NullIfEmpty(
+                        TextOrDash(
                             row.Cell(12).GetString()),
 
                     Status =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             status),
 
                     Remarks =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(14).GetString()),
 
                     UGs =
-                        NullIfPlaceholder(
+                        TextOrDash(
                             row.Cell(16).GetString())
                 };
 
@@ -521,26 +539,9 @@ namespace QMSApplication.Data
                    trimmed == "-";
         }
 
-        private static string? NullIfPlaceholder(
-            string? value)
+        private static string TextOrDash(string? value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return null;
-            }
-
-            string trimmed =
-                value.Trim();
-
-            if (trimmed.Equals(
-                    "NA",
-                    StringComparison.OrdinalIgnoreCase) ||
-                trimmed == "-")
-            {
-                return null;
-            }
-
-            return trimmed;
+            return string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
         }
 
         private static string? NullIfEmpty(
