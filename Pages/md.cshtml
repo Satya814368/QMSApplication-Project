@@ -246,12 +246,15 @@
             min-width: 110px;
         }
 
-        .md-table thead th:nth-child(1) {
+       
+       
+
+        .md-table thead th:nth-child(1){
             z-index: 20;
             background-color: #1f3c88;
         }
 
-        .md-table tbody tr:nth-child(even) td:nth-child(1) {
+        .md-table tbody tr:nth-child(even) td:nth-child(1){
             background-color: #f8f9fa;
         }
 
@@ -271,6 +274,7 @@
             text-decoration: underline;
         }
 
+    /* Delete button */
     .delete-button {
         display: inline-block;
         background-color: #dc3545;
@@ -429,25 +433,6 @@
                     }
                 </select>
 
-                <!-- DEPARTMENT NAME FILTER -->
-                <select name="DepartmentFilter"
-                        class="filter-select">
-                    <option value="">All Departments</option>
-
-                    @foreach (var item in Model.Departments)
-                    {
-                        if (string.Equals(item, Model.DepartmentFilter,
-                            StringComparison.OrdinalIgnoreCase))
-                        {
-                            <option value="@item" selected>@item</option>
-                        }
-                        else
-                        {
-                            <option value="@item">@item</option>
-                        }
-                    }
-                </select>
-
             </div>
         </div>
     </form>
@@ -462,7 +447,43 @@
        class="bulk-upload-button">
         Bulk Upload
     </a>
-</div>
+
+    
+    <div class="bulk-delete-toolbar">
+        <span id="selectedRecordCount" aria-live="polite">
+            0 records selected
+        </span>
+
+        <form method="post"
+              asp-page-handler="DeleteSelected"
+              id="deleteSelectedForm">
+
+            <div id="selectedRecordIdsContainer"></div>
+
+            <button type="submit"
+                    id="deleteSelectedButton"
+                    class="bulk-delete-button"
+                    disabled>
+                Delete Selected
+            </button>
+        </form>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <p class="bulk-delete-success" role="status">
+            @TempData["SuccessMessage"]
+        </p>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <p class="bulk-delete-error" role="alert">
+            @TempData["ErrorMessage"]
+        </p>
+    }
+
+    </div>
 
             <script>
                         (() => {
@@ -500,8 +521,13 @@
             <table class="md-table">
                 <thead>
                     <tr>
+                        <th class="select-column">
+                             <input type="checkbox"
+                                id="selectAllRecords"
+                                aria-label="Select all records on this page" />
+                        </th>
                         <th>Record ID</th>
-                        <th>Department Name</th>
+                        
                         <th>Milestone Name</th>
                         <th>Deliverable Name</th>
                         <th>Deliverable Type</th>
@@ -525,8 +551,14 @@
                     @foreach (var record in Model.Records)
                     {
                         <tr>
+                            <td class="select-column">
+                                <input type="checkbox"
+                                    class="record-checkbox"
+                                    value="@record.RecordID"
+                                    aria-label="Select record @record.RecordID" />
+                            </td>
                             <td class="record-id">@record.RecordID</td>
-                            <td>@record.DepartmentName</td>
+                            
                             <td>@record.MilestoneName</td>
                             <td>@record.DeliverableName</td>
                             <td>@record.DeliverableType</td>
@@ -581,4 +613,84 @@
                 </tbody>
             </table>
         </div>
-   
+</div>
+
+
+<script>
+    (() => {
+        const selectAll = document.getElementById("selectAllRecords");
+        const checkboxes = Array.from(
+            document.querySelectorAll(".record-checkbox")
+        );
+        const countLabel = document.getElementById("selectedRecordCount");
+        const deleteButton = document.getElementById("deleteSelectedButton");
+        const deleteForm = document.getElementById("deleteSelectedForm");
+        const hiddenContainer = document.getElementById(
+            "selectedRecordIdsContainer"
+        );
+
+        if (!selectAll || !countLabel || !deleteButton || !deleteForm) {
+            return;
+        }
+
+        function updateSelection() {
+            const selected = checkboxes.filter(cb => cb.checked);
+
+            countLabel.textContent =
+                `${selected.length} record(s) selected`;
+
+            deleteButton.disabled = selected.length === 0;
+
+            selectAll.checked =
+                checkboxes.length > 0 &&
+                checkboxes.every(cb => cb.checked);
+
+            selectAll.indeterminate =
+                selected.length > 0 &&
+                selected.length < checkboxes.length;
+        }
+
+        selectAll.addEventListener("change", () => {
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+
+            updateSelection();
+        });
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", updateSelection);
+        });
+
+        deleteForm.addEventListener("submit", event => {
+            const selected = checkboxes.filter(cb => cb.checked);
+
+            if (selected.length === 0) {
+                event.preventDefault();
+                alert("Please select at least one record.");
+                return;
+            }
+
+            const confirmed = confirm(
+                `Are you sure you want to delete ${selected.length} selected record(s)? This action cannot be undone.`
+            );
+
+            if (!confirmed) {
+                event.preventDefault();
+                return;
+            }
+
+            hiddenContainer.replaceChildren();
+
+            selected.forEach(cb => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "SelectedRecordIds";
+                input.value = cb.value;
+                hiddenContainer.appendChild(input);
+            });
+        });
+
+        updateSelection();
+    })();
+</script>
