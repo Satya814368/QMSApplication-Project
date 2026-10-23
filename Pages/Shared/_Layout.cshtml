@@ -11,7 +11,7 @@
     var title = ViewData["Title"]?.ToString() ?? key switch
     {
         "md" => "Milestones & Deliverables", "mdedit" => "Edit Deliverable", "mdview" => "View Deliverable",
-        "mdtasks" => "Deliverable Tasks", "mdimport" => "Import Deliverables", _ => "Quality Management Portal"
+        "mdtasks" => "Deliverable Tasks", "mdimport" => "Import Deliverables", _ => "Project Management Tool"
     };
     var section = key.StartsWith("md") || key == "importhistory" ? "records" :
         key.StartsWith("notification") && key != "notifications" ? "notificationadmin" :
@@ -24,7 +24,6 @@
         (Title: "Reports", Page: "/comingsoon", Module: "Reports", Key: "reports", Icon: "chart"),
         (Title: "My Tasks", Page: "/comingsoon", Module: "MyTasks", Key: "mytasks", Icon: "tasks"),
         (Title: "My Team", Page: "/comingsoon", Module: "MyTeam", Key: "myteam", Icon: "team"),
-        (Title: "Changes", Page: "/comingsoon", Module: "Changes", Key: "changes", Icon: "changes"),
         (Title: "Time Sheets", Page: "/comingsoon", Module: "TimeSheets", Key: "timesheets", Icon: "clock"),
         (Title: "Guidelines", Page: "/Guidelines", Module: "", Key: "guidelines", Icon: "book"),
         (Title: "Settings", Page: "/comingsoon", Module: "Settings", Key: "settings", Icon: "settings")
@@ -50,8 +49,7 @@
             <div class="qms-sidebar-heading">
                 <a class="qms-brand" asp-page="/Dashboard" aria-label="i-ray IT Solutions dashboard">
                     <span class="qms-logo-tile"><img src="~/iray-logo.png" alt="i-ray" width="142" height="45" /></span>
-                    <strong>i-ray IT Solutions</strong>
-                    <span>Quality Management Portal</span>
+                    <strong>Project Management Tool</strong>
                 </a>
                 <button type="button" class="qms-icon-button qms-drawer-close" data-close-menu aria-label="Close navigation"><partial name="_NavIcon" model='@("close")' /></button>
             </div>
@@ -78,7 +76,7 @@
             <header class="qms-topbar">
                 <div class="qms-topbar-brand">
                     <button type="button" id="portal-menu-toggle" class="qms-icon-button qms-menu-toggle" aria-controls="portal-sidebar" aria-expanded="false" aria-label="Open navigation"><partial name="_NavIcon" model='@("menu")' /></button>
-                    <div><span class="qms-company-name">i-ray IT Solutions</span><span class="qms-page-context">@title</span></div>
+                    <div><span class="qms-company-name">@title</span></div>
                 </div>
                 <form method="get" asp-page="/GlobalSearch" class="qms-global-search" role="search">
                     <label for="portal-search" class="visually-hidden">Search milestones and deliverables</label>
@@ -102,7 +100,7 @@
     else
     {
         <header class="qms-public-header">
-            <a class="qms-public-brand" asp-page="/Login"><img src="~/iray-logo.png" alt="i-ray logo" width="124" height="40" /><span><strong>i-ray IT Solutions</strong><small>Quality Management Portal</small></span></a>
+            <a class="qms-public-brand" asp-page="/Login"><img src="~/iray-logo.png" alt="i-ray logo" width="124" height="40" /><span><strong>Project Management Tool</strong></span></a>
         </header>
         <main id="main-content" class="qms-public-content" tabindex="-1">@RenderBody()</main>
         <partial name="_CopyrightFooter" />

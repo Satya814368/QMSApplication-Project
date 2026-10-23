@@ -14,7 +14,7 @@
 .qms-sidebar { position: fixed; inset: 0 auto 0 0; width: var(--qms-nav-width); height: 100vh; height: 100dvh; display: flex; flex-direction: column; color: #e4edfb; background: linear-gradient(170deg, var(--qms-navy), var(--qms-navy-deep)); z-index: 140; border-right: 1px solid #ffffff12; }
 .qms-sidebar-heading { position: relative; padding: 26px 23px 22px; border-bottom: 1px solid #ffffff15; }
 .qms-app .qms-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; color: white; text-decoration: none; }
-.qms-logo-tile { display: inline-flex; width: 169px; height: 64px; align-items: center; justify-content: center; background: white; border-radius: 10px; margin-bottom: 11px; padding: 10px 13px; }
+.qms-logo-tile { display: inline-flex; width: 169px; height: 64px; align-items: center; justify-content: center; border-radius: 10px; margin-bottom: 11px; padding: 10px 13px; }
 .qms-logo-tile img { width: 142px; height: auto; object-fit: contain; }
 .qms-brand strong { font-size: 16px; letter-spacing: .02em; }
 .qms-brand > span:last-child { color: #a9bfdd; font-size: 11.5px; }
@@ -215,3 +215,25 @@
 .qms-notification-item > strong { overflow-wrap: anywhere; }
 #main-content { scroll-margin-top: calc(var(--qms-topbar-height) + 8px); }
 @media (max-width: 480px) { .qms-record-count { margin-left: 48px; } .qms-app .md-title { flex-wrap: wrap; gap: 8px 12px; } }
+
+
+
+
+/* Navy branding header on login, register and forgot-password pages */
+.qms-public-header {
+    background: #102c54;
+    border-bottom-color: #102c54;
+}
+
+.qms-app .qms-public-brand,
+.qms-public-brand strong {
+    color: #ffffff;
+}
+
+.qms-public-brand small {
+    color: #cbd8eb;
+}
+
+.qms-public-brand > span {
+    border-left-color: rgba(255, 255, 255, 0.25);
+}
