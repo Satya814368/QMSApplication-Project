@@ -237,3 +237,98 @@
 .qms-public-brand > span {
     border-left-color: rgba(255, 255, 255, 0.25);
 }
+
+
+
+
+
+/* Append this complete block to the END of wwwroot/css/portal-shell.css. */
+/* M&D table only: matching frozen columns and a pinned table toolbar. */
+#mdTableContainer {
+    --md-checkbox-width: 48px;
+    --md-record-width: 120px;
+    --md-toolbar-height: 54px;
+    padding: 0;
+    isolation: isolate;
+}
+
+#mdTableContainer .md-table-toolbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: var(--md-toolbar-height);
+    box-sizing: border-box;
+    padding: 6px 8px;
+    margin: 0;
+    background: #ffffff;
+    border-bottom: 1px solid #dddddd;
+}
+
+#mdTableContainer .maximize-button {
+    flex: 0 0 auto;
+    height: 40px;
+    margin: 0;
+}
+
+#mdTableContainer .md-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+}
+
+/* All column headings stay above the data during vertical scrolling. */
+#mdTableContainer .md-table thead th {
+    position: sticky;
+    top: var(--md-toolbar-height);
+    z-index: 30;
+    background: #1f3c88;
+    color: #ffffff;
+}
+
+/* The frozen column's offset must equal the actual checkbox width. */
+#mdTableContainer .md-table th:nth-child(1),
+#mdTableContainer .md-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    width: var(--md-checkbox-width);
+    min-width: var(--md-checkbox-width);
+    max-width: var(--md-checkbox-width);
+    box-sizing: border-box;
+    padding: 10px 8px;
+    text-align: center;
+    z-index: 12;
+}
+
+#mdTableContainer .md-table th:nth-child(2),
+#mdTableContainer .md-table td:nth-child(2) {
+    position: sticky;
+    left: var(--md-checkbox-width);
+    width: var(--md-record-width);
+    min-width: var(--md-record-width);
+    max-width: var(--md-record-width);
+    box-sizing: border-box;
+    z-index: 11;
+    box-shadow: 1px 0 0 #dddddd;
+}
+
+/* Header intersections sit above frozen data cells and other headings. */
+#mdTableContainer .md-table thead th:nth-child(1),
+#mdTableContainer .md-table thead th:nth-child(2) {
+    z-index: 40;
+    background: #1f3c88;
+}
+
+#mdTableContainer .md-table tbody tr:hover td:nth-child(1),
+#mdTableContainer .md-table tbody tr:hover td:nth-child(2) {
+    background: #eef3ff;
+}
+
+@media print {
+    #mdTableContainer .md-table-toolbar { display: none; }
+    #mdTableContainer .md-table thead th { top: 0; }
+}
