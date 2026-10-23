@@ -13,7 +13,7 @@ public class MDCreateModel : PageModel
     private readonly QMSPortalDbContext _db;
     public MDCreateModel(QMSPortalDbContext db) => _db = db;
     [BindProperty] public InputModel Input { get; set; } = new();
-    [BindProperty] public string TasksJson { get; set; } = "[]";
+    [BindProperty] public string? TasksJson { get; set; } = "[]";
     public bool ShowTasks { get; set; }
     public List<PortalUser> ActiveUsers { get; set; } = new();
 

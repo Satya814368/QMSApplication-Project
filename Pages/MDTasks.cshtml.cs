@@ -20,7 +20,7 @@ public class MDTasksModel : PageModel
         || string.Equals(Deliverable?.CreatedBy, _actor.Username, StringComparison.OrdinalIgnoreCase)
         || string.Equals(Deliverable?.AssignedTo, _actor.Username, StringComparison.OrdinalIgnoreCase));
     public bool CanUpdate(DeliverableTarget target) => CanManage || target.AssignedUserId == _actor?.Id;
-    [BindProperty] public string TasksJson { get; set; } = "[]";
+    [BindProperty] public string? TasksJson { get; set; } = "[]";
     [BindProperty] public List<long> SelectedTargets { get; set; } = new();
     [BindProperty] public Dictionary<long, Guid> Versions { get; set; } = new();
     [BindProperty] public string UpdateAction { get; set; } = "Progress";

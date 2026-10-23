@@ -1,17 +1,14 @@
 ﻿@page
 @model QMSApplication.Pages.MDEditModel
+@{ ViewData["Title"] = "Edit M & D Record"; }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit M & D Record</title>
+
+
+
+
 
     <style>
-            body {
-                margin: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f4f6f9;
-            }
+
 
             .header {
                 background-color: #123a72;
@@ -92,9 +89,9 @@
                 border: 1px solid #c8dcf5;
             }
     </style>
-</head>
 
-<body>
+
+
 
     <div class="header">
         <h1>Edit M & D Record</h1>
@@ -130,7 +127,7 @@
                         <label>S.No</label>
                         <input asp-for="Record.SNo" />
                     </div>
-                    
+
 <div class="field">
     <label>Department Name</label>
 
@@ -464,5 +461,3 @@
 
             });
     </script>
-</body>
-</html>

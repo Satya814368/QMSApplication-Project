@@ -14,7 +14,7 @@
 @if (TempData["SuccessMessage"] is string message)
 { <div class="alert alert-success" role="status">@message</div> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-<div class="border rounded p-3 mb-3">
+<div class="qms-task-summary border rounded p-3 mb-3">
     <strong>No. of Tasks (languages): @Model.Tasks.Count</strong> · Targets: @allTargets.Count ·
     Completed: @allTargets.Count(x => !x.IsCancelled && x.Steps.Count(s => s.Status == "Completed") == 14) ·
     Cancelled: @allTargets.Count(x => x.IsCancelled) · Total time: @TaskWorkflow.Duration(totalMinutes)
@@ -25,7 +25,7 @@
 <form method="post" asp-page-handler="Update" asp-route-id="@Model.Deliverable.Id" id="progress-form">
     @foreach (var task in Model.Tasks)
     {
-        <section class="border rounded p-3 mb-4">
+        <section class="qms-language-section border rounded p-3 mb-4">
             <h3 class="h5">@task.Language <small class="text-muted">(@task.Targets.Count targets · default member: @Model.MemberName(task.AssignedUserId))</small></h3>
             <label class="mb-2"><input type="checkbox" class="select-language" /> Select all available targets in @task.Language</label>
             <div class="table-responsive">

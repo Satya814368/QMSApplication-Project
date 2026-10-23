@@ -1,124 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using QMSApplication.Models;
-
-namespace QMSApplication.Pages
-{
-public class NotificationEditModel : PageModel
-{
-private readonly QMSPortalDbContext _db;
-
-public NotificationEditModel(QMSPortalDbContext db)
-{
-_db = db;
-}
-
-[BindProperty]
-public long Id { get; set; }
-
-[BindProperty]
-public string Title { get; set; } = string.Empty;
-
-[BindProperty]
-public string Message { get; set; } = string.Empty;
-
-[BindProperty]
-public string Priority { get; set; } = "Normal";
-
-[BindProperty]
-public bool IsMandatory { get; set; }
-
-[BindProperty]
-public bool IsPublished { get; set; }
-
-[BindProperty]
-public string? TargetRole { get; set; }
-
-private bool IsAdminOrManager()
-{
-var role = HttpContext.Session.GetString("UserRole");
-
-return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
-|| string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase);
-}
-
-public async Task<IActionResult>
-OnGetAsync(long id)
-{
-if (!IsAdminOrManager())
-{
-return RedirectToPage("/Notifications");
-}
-
-var notification = await _db.Notifications
-.FirstOrDefaultAsync(x => x.Id == id);
-
-if (notification == null)
-{
-return NotFound();
-}
-
-Id = notification.Id;
-Title = notification.Title;
-Message = notification.Message;
-Priority = notification.Priority;
-IsMandatory = notification.IsMandatory;
-IsPublished = notification.IsPublished;
-TargetRole = notification.TargetRole;
-
-return Page();
-}
-
-public async Task<IActionResult>
-OnPostAsync()
-{
-if (!IsAdminOrManager())
-{
-return RedirectToPage("/Notifications");
-}
-
-if (string.IsNullOrWhiteSpace(Title))
-{
-ModelState.AddModelError(
-nameof(Title),
-"Title is required.");
-}
-
-if (string.IsNullOrWhiteSpace(Message))
-{
-ModelState.AddModelError(
-nameof(Message),
-"Message is required.");
-}
-
-if (!ModelState.IsValid)
-{
-return Page();
-}
-
-var notification = await _db.Notifications
-.FirstOrDefaultAsync(x => x.Id == Id);
-
-if (notification == null)
-{
-return NotFound();
-}
-
-notification.Title = Title.Trim();
-notification.Message = Message.Trim();
-notification.Priority = Priority;
-notification.IsMandatory = IsMandatory;
-notification.IsPublished = IsPublished;
-notification.TargetRole = string.IsNullOrWhiteSpace(TargetRole)
-? null
-: TargetRole;
-
-notification.UpdatedAtUtc = DateTime.UtcNow;
-
-await _db.SaveChangesAsync();
-
-return RedirectToPage("/NotificationAdmin");
-}
-}
-}
+﻿@page
+@model QMSApplication.Pages.NotificationEditModel
+@{ ViewData["Title"] = "Edit Notification"; }
+<div class="qms-form-card">
+    <h1>Edit Notification</h1>
+    <p class="text-muted">Update the message and its audience.</p>
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <form method="post">
+        <input type="hidden" asp-for="Id" />
+        <div class="mb-3"><label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label><input asp-for="Title" class="form-control" required maxlength="200" /></div>
+        <div class="mb-3"><label asp-for="Message" class="form-label">Message <span class="text-danger">*</span></label><textarea asp-for="Message" class="form-control" rows="5" required></textarea></div>
+        <div class="qms-form-grid">
+            <div class="mb-3"><label asp-for="Priority" class="form-label">Priority</label><select asp-for="Priority" class="form-select"><option>Normal</option><option>High</option><option>Critical</option></select></div>
+            <div class="mb-3"><label asp-for="TargetRole" class="form-label">Target role</label><select asp-for="TargetRole" class="form-select"><option value="">All Users</option><option>Admin</option><option>Manager</option><option>User</option></select></div>
+        </div>
+        <div class="form-check mb-3"><input asp-for="IsMandatory" class="form-check-input" /><label asp-for="IsMandatory" class="form-check-label">Mandatory acknowledgement</label></div>
+        <div class="form-check mb-3"><input asp-for="IsPublished" class="form-check-input" /><label asp-for="IsPublished" class="form-check-label">Published</label></div>
+        <div class="qms-form-actions"><button type="submit" class="btn btn-primary">Save changes</button><a asp-page="/NotificationAdmin" class="btn btn-secondary">Cancel</a></div>
+    </form>
+</div>

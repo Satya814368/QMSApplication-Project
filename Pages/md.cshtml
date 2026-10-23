@@ -3,7 +3,7 @@
 
 <style>
     .md-page {
-        min-width: 1024px;
+        min-width: 0;
         width: 100%;
         padding: 20px;
         font-family: Arial, sans-serif;
@@ -297,7 +297,7 @@
             <span>&#8592;</span>
         </a>
 
-        <h1>Milestones &amp; Deliverables</h1>
+        <h1>Milestones &amp; Deliverables</h1><span class="qms-record-count">@Model.Records.Count records</span>
     </div>
 
     @if (TempData["SuccessMessage"] != null)
@@ -667,7 +667,7 @@
                             <td>@record.DeviationReason</td>
                             <td>@record.DeliverableActualCompletedDate</td>
                             <td>@record.MilestoneAchievedDate</td>
-                            <td>@record.Status</td>
+                            <td><span class="qms-status" data-status="@record.Status">@record.Status</span></td>
                             <td>@record.Remarks</td>
                             <td>@record.UGs</td>
 

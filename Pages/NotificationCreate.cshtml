@@ -1,92 +1,19 @@
 ﻿@page
 @model QMSApplication.Pages.NotificationCreateModel
-
-@{
-    ViewData["Title"] = "Create Notification";
-    Layout = "_PortalLayout";
-}
-
-<div style="padding:30px; max-width:800px;">
-
+@{ ViewData["Title"] = "Create Notification"; }
+<div class="qms-form-card">
     <h1>Create Notification</h1>
-
+    <p class="text-muted">Write a message and choose its audience.</p>
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     <form method="post">
-
-        <div style="margin-bottom:15px;">
-            <label>Title</label><br />
-            <input type="text"
-                   name="Title"
-                   style="width:100%; padding:8px;" />
+        <div class="mb-3"><label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label><input asp-for="Title" class="form-control" required maxlength="200" /></div>
+        <div class="mb-3"><label asp-for="Message" class="form-label">Message <span class="text-danger">*</span></label><textarea asp-for="Message" class="form-control" rows="5" required></textarea></div>
+        <div class="qms-form-grid">
+            <div class="mb-3"><label asp-for="Priority" class="form-label">Priority</label><select asp-for="Priority" class="form-select"><option>Normal</option><option>High</option><option>Critical</option></select></div>
+            <div class="mb-3"><label asp-for="TargetRole" class="form-label">Target role</label><select asp-for="TargetRole" class="form-select"><option value="">All Users</option><option>Admin</option><option>Manager</option><option>User</option></select></div>
         </div>
-
-        <div style="margin-bottom:15px;">
-            <label>Message</label><br />
-            <textarea name="Message"
-                      rows="5"
-                      style="width:100%; padding:8px;"></textarea>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label>Priority</label><br />
-
-            <select name="Priority"
-                    style="width:100%; padding:8px;">
-
-                <option value="Normal">Normal</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-
-            </select>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label>
-                <input type="checkbox"
-                       name="IsMandatory"
-                       value="true" />
-
-                Mandatory notification
-            </label>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label>
-                <input type="checkbox"
-                       name="IsPublished"
-                       value="true" />
-
-                Publish notification
-            </label>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label>Target Role</label><br />
-
-            <select name="TargetRole"
-                    style="width:100%; padding:8px;">
-
-                <option value="">All Users</option>
-                <option value="Admin">Admin</option>
-                <option value="Manager">Manager</option>
-                <option value="User">User</option>
-
-            </select>
-        </div>
-
-        <button type="submit"
-                style="padding:10px 18px;
-            background:#1f4e79;
-            color:white;
-            border:none;
-            border-radius:5px;">
-            Save Notification
-        </button>
-
-        <a href="/NotificationAdmin"
-           style="margin-left:10px;">
-            Cancel
-        </a>
-
+        <div class="form-check mb-3"><input asp-for="IsMandatory" class="form-check-input" /><label asp-for="IsMandatory" class="form-check-label">Mandatory acknowledgement</label></div>
+        <div class="form-check mb-3"><input asp-for="IsPublished" class="form-check-input" /><label asp-for="IsPublished" class="form-check-label">Published</label></div>
+        <div class="qms-form-actions"><button type="submit" class="btn btn-primary">Create notification</button><a asp-page="/NotificationAdmin" class="btn btn-secondary">Cancel</a></div>
     </form>
-
 </div>

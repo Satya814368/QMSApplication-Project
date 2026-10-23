@@ -1,0 +1,29 @@
+@using Microsoft.EntityFrameworkCore
+@using QMSApplication.Models
+@inject QMSPortalDbContext Db
+@{
+    var username = Context.Session.GetString("Username");
+    var role = Context.Session.GetString("UserRole");
+    var relevant = Db.Notifications.AsNoTracking().Where(n => n.IsPublished && (string.IsNullOrEmpty(n.TargetRole) || n.TargetRole == role));
+    var unread = await relevant.CountAsync(n => !Db.NotificationUserStatuses.Any(s => s.NotificationId == n.Id && s.Username == username && s.IsRead));
+    var recent = await relevant.OrderByDescending(n => n.NotificationDateUtc).Take(3).ToListAsync();
+    var ids = recent.Select(n => n.Id).ToList();
+    var statuses = await Db.NotificationUserStatuses.AsNoTracking().Where(s => s.Username == username && ids.Contains(s.NotificationId)).ToListAsync();
+}
+<details class="qms-notifications">
+    <summary class="qms-icon-button" aria-label="Notifications, @unread unread"><partial name="_NavIcon" model='@("bell")' />@if (unread > 0) { <span class="qms-notification-badge">@(unread > 99 ? "99+" : unread.ToString())</span> }</summary>
+    <div class="qms-notification-panel">
+        <div class="qms-panel-heading"><strong>Notifications</strong><span>@unread unread</span></div>
+        @if (recent.Count == 0) { <p class="qms-notification-empty">You’re all caught up. No notifications to show.</p> }
+        @foreach (var notification in recent)
+        {
+            var status = statuses.FirstOrDefault(s => s.NotificationId == notification.Id);
+            <a asp-page="/Notifications" class="qms-notification-item">
+                <strong>@notification.Title</strong><p>@notification.Message</p>
+                <small>@notification.NotificationDateUtc.ToLocalTime().ToString("dd-MMM-yyyy HH:mm") · @notification.Priority · @(status?.IsRead == true ? "Read" : "Unread")</small>
+                @if (notification.IsMandatory) { <span class="qms-mandatory-tag">@(status?.IsAcknowledged == true ? "Acknowledged" : "Acknowledgement required")</span> }
+            </a>
+        }
+        <a asp-page="/Notifications" class="qms-notification-all">View all notifications →</a>
+    </div>
+</details>

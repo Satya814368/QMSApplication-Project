@@ -59,7 +59,7 @@
 
         <p>
             
-            <strong>@Model.Username</strong>
+            <strong>@(string.IsNullOrWhiteSpace(Model.Username) ? Model.HttpContext.Session.GetString("LoggedInUser") : Model.Username)</strong>
         </p>
 
         <form method="post">

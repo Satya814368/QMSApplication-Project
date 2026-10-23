@@ -1,46 +1,116 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var page = (ViewContext.RouteData.Values["page"]?.ToString() ?? Context.Request.Path.Value ?? "").TrimEnd('/');
+    var key = page.Trim('/').ToLowerInvariant();
+    var module = Context.Request.Query["module"].ToString();
+    var username = Context.Session.GetString("Username");
+    var displayName = Context.Session.GetString("LoggedInUser");
+    if (string.IsNullOrWhiteSpace(displayName)) displayName = username ?? "User";
+    var role = Context.Session.GetString("UserRole") ?? "User";
+    var authPage = new[] { "login", "register", "forgotpassword" }.Contains(key);
+    var signedIn = !string.IsNullOrWhiteSpace(username) && !authPage;
+    var title = ViewData["Title"]?.ToString() ?? key switch
+    {
+        "md" => "Milestones & Deliverables", "mdedit" => "Edit Deliverable", "mdview" => "View Deliverable",
+        "mdtasks" => "Deliverable Tasks", "mdimport" => "Import Deliverables", _ => "Quality Management Portal"
+    };
+    var section = key.StartsWith("md") || key == "importhistory" ? "records" :
+        key.StartsWith("notification") && key != "notifications" ? "notificationadmin" :
+        key == "comingsoon" ? module.ToLowerInvariant() :
+        key == "welcome" || key == "completedug" ? "dashboard" : key;
+    var pages = new[]
+    {
+        (Title: "Dashboard", Page: "/Dashboard", Module: "", Key: "dashboard", Icon: "dashboard"),
+        (Title: "M & D", Page: "/md", Module: "", Key: "records", Icon: "records"),
+        (Title: "Reports", Page: "/comingsoon", Module: "Reports", Key: "reports", Icon: "chart"),
+        (Title: "My Tasks", Page: "/comingsoon", Module: "MyTasks", Key: "mytasks", Icon: "tasks"),
+        (Title: "My Team", Page: "/comingsoon", Module: "MyTeam", Key: "myteam", Icon: "team"),
+        (Title: "Changes", Page: "/comingsoon", Module: "Changes", Key: "changes", Icon: "changes"),
+        (Title: "Time Sheets", Page: "/comingsoon", Module: "TimeSheets", Key: "timesheets", Icon: "clock"),
+        (Title: "Guidelines", Page: "/Guidelines", Module: "", Key: "guidelines", Icon: "book"),
+        (Title: "Settings", Page: "/comingsoon", Module: "Settings", Key: "settings", Icon: "settings")
+    };
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"]</title>
-    <script type="importmap"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#102c54" />
+    <title>@title · i-ray IT Solutions</title>
+    <link rel="icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/QMSApplication.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/portal-shell.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-               
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                       
-                    </ul>
-                </div>
+<body class="qms-app qms-page-@key @(signedIn ? "qms-signed-in" : "qms-public")">
+    <a href="#main-content" class="qms-skip-link">Skip to page content</a>
+    @if (signedIn)
+    {
+        <aside id="portal-sidebar" class="qms-sidebar" aria-label="Portal sidebar">
+            <div class="qms-sidebar-heading">
+                <a class="qms-brand" asp-page="/Dashboard" aria-label="i-ray IT Solutions dashboard">
+                    <span class="qms-logo-tile"><img src="~/iray-logo.png" alt="i-ray" width="142" height="45" /></span>
+                    <strong>i-ray IT Solutions</strong>
+                    <span>Quality Management Portal</span>
+                </a>
+                <button type="button" class="qms-icon-button qms-drawer-close" data-close-menu aria-label="Close navigation"><partial name="_NavIcon" model='@("close")' /></button>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-<footer class="border-top footer text-muted">
-    <div class="container">
-        © 2026 i-ray IT Solutions. All rights reserved.
-    </div>
-</footer>
+            <nav class="qms-navigation" aria-label="Main navigation">
+                <p class="qms-nav-label">Workspace</p>
+                @foreach (var item in pages)
+                {
+                    var url = string.IsNullOrEmpty(item.Module) ? Url.Page(item.Page) : Url.Page(item.Page, new { module = item.Module });
+                    <a href="@url" class="qms-nav-link @(section == item.Key ? "is-active" : "")" aria-current="@(section == item.Key ? "page" : null)">
+                        <partial name="_NavIcon" model="item.Icon" /><span>@item.Title</span>
+                    </a>
+                }
+                <p class="qms-nav-label qms-nav-divider">Updates</p>
+                <a asp-page="/Notifications" class="qms-nav-link @(section == "notifications" ? "is-active" : "")" aria-current="@(section == "notifications" ? "page" : null)"><partial name="_NavIcon" model='@("bell")' /><span>Notifications</span></a>
+                @if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    <a asp-page="/NotificationAdmin" class="qms-nav-link @(section == "notificationadmin" ? "is-active" : "")" aria-current="@(section == "notificationadmin" ? "page" : null)"><partial name="_NavIcon" model='@("settings")' /><span>Manage Notifications</span></a>
+                }
+            </nav>
+            <div class="qms-sidebar-foot"><span class="qms-workspace-dot"></span> Your quality workspace</div>
+        </aside>
+        <button class="qms-backdrop" data-close-menu aria-label="Close navigation" tabindex="-1" hidden></button>
+        <div class="qms-main-shell" id="portal-main-shell">
+            <header class="qms-topbar">
+                <div class="qms-topbar-brand">
+                    <button type="button" id="portal-menu-toggle" class="qms-icon-button qms-menu-toggle" aria-controls="portal-sidebar" aria-expanded="false" aria-label="Open navigation"><partial name="_NavIcon" model='@("menu")' /></button>
+                    <div><span class="qms-company-name">i-ray IT Solutions</span><span class="qms-page-context">@title</span></div>
+                </div>
+                <form method="get" asp-page="/GlobalSearch" class="qms-global-search" role="search">
+                    <label for="portal-search" class="visually-hidden">Search milestones and deliverables</label>
+                    <partial name="_NavIcon" model='@("search")' />
+                    <input type="search" id="portal-search" name="Query" placeholder="Search milestones, deliverables…" value="@Context.Request.Query["Query"]" />
+                    <button type="submit">Search</button>
+                </form>
+                <div class="qms-header-actions">
+                    @if (key != "error") { <partial name="_NotificationMenu" /> }
+                    <div class="qms-profile" role="group" aria-label="Signed in as @displayName, @role" title="@displayName (@role)"><span class="qms-avatar" aria-hidden="true">@(displayName.Trim().FirstOrDefault().ToString().ToUpperInvariant())</span><span class="qms-profile-copy"><strong>@displayName</strong><small>@role</small></span></div>
+                    <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="qms-logout-form"><button type="submit" class="qms-icon-button qms-logout" title="Log out"><partial name="_NavIcon" model='@("logout")' /><span>Logout</span></button></form>
+                </div>
+            </header>
+            <main id="main-content" class="qms-content" tabindex="-1">
+                @RenderBody()
+                <partial name="_PageNavigation" />
+            </main>
+            <partial name="_CopyrightFooter" />
+        </div>
+    }
+    else
+    {
+        <header class="qms-public-header">
+            <a class="qms-public-brand" asp-page="/Login"><img src="~/iray-logo.png" alt="i-ray logo" width="124" height="40" /><span><strong>i-ray IT Solutions</strong><small>Quality Management Portal</small></span></a>
+        </header>
+        <main id="main-content" class="qms-public-content" tabindex="-1">@RenderBody()</main>
+        <partial name="_CopyrightFooter" />
+    }
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
+    <script src="~/js/portal-shell.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
