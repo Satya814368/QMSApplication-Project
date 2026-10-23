@@ -15,6 +15,7 @@ namespace QMSApplication.Pages
         }
 
         public MDRecord? Record { get; set; }
+        public long DeliverableId { get; set; }
 
 
         public void OnGet(string? id)
@@ -35,6 +36,7 @@ namespace QMSApplication.Pages
             }
 
 
+            DeliverableId = entity.Id;
             // Normalize imported status values
             string status = entity.Status ?? "";
 

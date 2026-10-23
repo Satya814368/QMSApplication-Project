@@ -1,0 +1,128 @@
+@page "{id:long}"
+@model QMSApplication.Pages.MDTasksModel
+@using QMSApplication.Models
+@{
+    ViewData["Title"] = "Deliverable Tasks";
+    var allTargets = Model.Tasks.SelectMany(x => x.Targets).ToList();
+    long totalMinutes = 0;
+    foreach (var target in allTargets)
+    { foreach (var step in target.Steps) { totalMinutes += step.MinutesSpent; } }
+}
+<h2>@Model.Deliverable.RecordID — @Model.Deliverable.DeliverableName</h2>
+<p>@Model.Deliverable.MilestoneName · @Model.Deliverable.DepartmentName</p>
+<a asp-page="/MD" class="btn btn-outline-secondary mb-3">← M &amp; D</a>
+@if (TempData["SuccessMessage"] is string message)
+{ <div class="alert alert-success" role="status">@message</div> }
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<div class="border rounded p-3 mb-3">
+    <strong>No. of Tasks (languages): @Model.Tasks.Count</strong> · Targets: @allTargets.Count ·
+    Completed: @allTargets.Count(x => !x.IsCancelled && x.Steps.Count(s => s.Status == "Completed") == 14) ·
+    Cancelled: @allTargets.Count(x => x.IsCancelled) · Total time: @TaskWorkflow.Duration(totalMinutes)
+</div>
+<p>Each target has its own 14-step tracker. Select one target for an individual update, or multiple targets to update them together. Cancelled targets retain their history and are not counted as completed.</p>
+@if (allTargets.Count > 0)
+{
+<form method="post" asp-page-handler="Update" asp-route-id="@Model.Deliverable.Id" id="progress-form">
+    @foreach (var task in Model.Tasks)
+    {
+        <section class="border rounded p-3 mb-4">
+            <h3 class="h5">@task.Language <small class="text-muted">(@task.Targets.Count targets · default member: @Model.MemberName(task.AssignedUserId))</small></h3>
+            <label class="mb-2"><input type="checkbox" class="select-language" /> Select all available targets in @task.Language</label>
+            <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead><tr><th>Select</th><th>Target number</th><th>Assigned member</th><th>Current step / status</th><th>Progress</th><th>Time taken / step details</th></tr></thead>
+                <tbody>
+                @foreach (var target in task.Targets.OrderBy(x => x.TargetNumber))
+                {
+                    <tr>
+                        <td>
+                        @if (Model.CanUpdate(target))
+                        {
+                            <input type="checkbox" name="SelectedTargets" value="@target.Id" class="target-select" aria-label="Select @task.Language target @target.TargetNumber" />
+                            <input type="hidden" name="Versions[@target.Id]" value="@target.ConcurrencyToken" />
+                        }
+                        </td>
+                        <td><strong>@target.TargetNumber</strong></td>
+                        <td>@Model.MemberName(target.AssignedUserId)</td>
+                        <td>@TaskWorkflow.CurrentStep(target)
+                            @if (target.IsCancelled)
+                            { <small class="d-block">Reason: @target.CancellationReason · GN approval: @target.GnApprovalReference</small> }
+                        </td>
+                        <td><progress value="@TaskWorkflow.Percent(target)" max="100" aria-label="Progress for @target.TargetNumber"></progress> @TaskWorkflow.Percent(target)%
+                            <small class="d-block">@target.Steps.Count(x => x.Status == "Completed") / 14 steps completed</small>
+                        </td>
+                        <td>
+                            <strong>@TaskWorkflow.Duration(target.Steps.Sum(x => x.MinutesSpent))</strong>
+                            <details><summary>View 14 steps</summary>
+                                <table class="table table-sm mt-2"><thead><tr><th>Step</th><th>Status</th><th>Time</th></tr></thead><tbody>
+                                @foreach (var step in target.Steps.OrderBy(x => x.StepNumber))
+                                {
+                                    <tr><td>(@step.StepNumber/14) @TaskWorkflow.Steps[step.StepNumber - 1]</td><td>@step.Status</td><td>@TaskWorkflow.Duration(step.MinutesSpent)</td></tr>
+                                }
+                                </tbody></table>
+                            </details>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            </div>
+        </section>
+    }
+    <fieldset class="border rounded p-3 mb-4">
+        <legend class="float-none w-auto fs-5 px-2">Update selected targets</legend>
+        <p id="selection-count" aria-live="polite">0 targets selected</p>
+        <label asp-for="UpdateAction" class="form-label">Action</label>
+        <select asp-for="UpdateAction" class="form-select mb-3">
+            <option value="Progress">Update a progress step / add time</option>
+            @if (Model.CanManage)
+            { <option value="Assign">Assign to a member</option><option value="Cancel">Cancel with GN approval</option> }
+        </select>
+        <div data-action="Progress">
+            <label asp-for="StepNumber" class="form-label">Step</label>
+            <select asp-for="StepNumber" class="form-select mb-3">
+                @for (var i = 0; i < TaskWorkflow.Steps.Count; i++)
+                { <option value="@(i + 1)">(@(i + 1)/14) @TaskWorkflow.Steps[i]</option> }
+            </select>
+            <label asp-for="StepStatus" class="form-label">Step status</label>
+            <select asp-for="StepStatus" class="form-select mb-3"><option>Not Started</option><option>In Progress</option><option>Completed</option></select>
+            <p>Enter <strong>additional time</strong> spent on this activity. Existing time is retained. For multiple targets, the total is split equally in whole minutes; any remainder goes to targets in ID order.</p>
+            <div class="row mb-3">
+                <div class="col-sm-3"><label asp-for="Hours" class="form-label">Hours</label><input asp-for="Hours" type="number" min="0" max="100000" class="form-control" /></div>
+                <div class="col-sm-3"><label asp-for="Minutes" class="form-label">Minutes</label><input asp-for="Minutes" type="number" min="0" max="59" class="form-control" /></div>
+            </div>
+        </div>
+        @if (Model.CanManage)
+        {
+            <div data-action="Assign">
+                <label asp-for="NewAssignedUserId" class="form-label">New assigned member</label>
+                <select asp-for="NewAssignedUserId" class="form-select mb-3"><option value="">-- Select active member --</option>
+                    @foreach (var user in Model.ActiveUsers)
+                    { <option value="@user.Id">@user.FullName (@user.Username)</option> }
+                </select>
+            </div>
+            <div data-action="Cancel">
+                <label asp-for="CancellationReason" class="form-label">Cancellation reason <span class="text-danger">*</span></label>
+                <textarea asp-for="CancellationReason" class="form-control mb-3" maxlength="500"></textarea>
+                <label asp-for="GnApprovalReference" class="form-label">GN approval reference <span class="text-danger">*</span></label>
+                <input asp-for="GnApprovalReference" class="form-control mb-3" maxlength="200" placeholder="Approval email or reference number" />
+            </div>
+        }
+        <button class="btn btn-primary" type="submit">Apply to selected targets</button>
+    </fieldset>
+</form>
+}
+@if (Model.CanManage)
+{
+    <details class="border rounded p-3 mb-4"><summary>Add language tasks to this deliverable</summary>
+        <form method="post" asp-page-handler="Add" asp-route-id="@Model.Deliverable.Id" class="mt-3">
+            <input type="hidden" asp-for="TasksJson" />
+            <partial name="_LanguageTaskEditor" model="Model.ActiveUsers" />
+            <button type="submit" class="btn btn-primary">Save new language tasks</button>
+        </form>
+    </details>
+}
+@section Scripts {
+    <script src="~/js/language-tasks.js" asp-append-version="true"></script>
+    <script src="~/js/target-progress.js" asp-append-version="true"></script>
+}

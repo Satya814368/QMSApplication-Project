@@ -1,0 +1,28 @@
+@model System.Collections.Generic.List<QMSApplication.Models.PortalUser>
+<div id="language-editor">
+    <p><strong>No. of Tasks (languages): <span id="language-count">0</span></strong> · Targets: <span id="target-count">0</span></p>
+    <div id="language-rows"></div>
+    <button id="add-language" type="button" class="btn btn-outline-primary mb-3">+ Add Language Task</button>
+    <p class="text-muted">Up to 40 languages and 400 targets per submission. Separate target numbers with commas, spaces, or new lines. Leading zeros are preserved.</p>
+</div>
+<template id="language-template">
+    <fieldset class="border rounded p-3 mb-3 language-row">
+        <legend class="float-none w-auto fs-6 px-2">Language task</legend>
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label">Language <span class="text-danger">*</span>
+                <input class="form-control language-name" required maxlength="80" placeholder="e.g. German" />
+            </label></div>
+            <div class="col-md-4"><label class="form-label">Target numbers <span class="text-danger">*</span>
+                <textarea class="form-control target-numbers" required rows="2" placeholder="403024, 403025, 403026"></textarea>
+            </label><small class="d-block">Targets: <span class="row-target-count">0</span></small></div>
+            <div class="col-md-4"><label class="form-label">Assigned member <span class="text-danger">*</span>
+                <select class="form-select task-assignee" required>
+                    <option value="">-- Select active member --</option>
+                    @foreach (var user in Model)
+                    { <option value="@user.Id">@user.FullName (@user.Username)</option> }
+                </select>
+            </label></div>
+            <div class="col-md-1"><button type="button" class="btn btn-outline-danger remove-language" aria-label="Remove this language task">Remove</button></div>
+        </div>
+    </fieldset>
+</template>

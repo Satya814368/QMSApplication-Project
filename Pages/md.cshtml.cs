@@ -186,12 +186,15 @@ namespace QMSApplication.Pages
         // DELETE ONLY THE SELECTED M&D RECORD
         public async Task<IActionResult> OnPostDeleteAsync(string? id)
         {
+            var denied = await CheckDeleteAccessAsync();
+            if (denied != null) return denied;
             if (string.IsNullOrWhiteSpace(id))
             {
                 TempData["ErrorMessage"] = "Record ID is missing.";
                 return RedirectToPage();
             }
 
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var record = await _db.MDRecords
                 .FirstOrDefaultAsync(x => x.RecordID == id);
 
@@ -203,8 +206,10 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
+            await AddDeleteAuditsAsync(new[] { record });
             _db.MDRecords.Remove(record);
             await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             TempData["SuccessMessage"] =
                 $"Record {id} was deleted successfully.";
@@ -216,6 +221,8 @@ namespace QMSApplication.Pages
         // DELETE MULTIPLE SELECTED M&D RECORDS
         public async Task<IActionResult> OnPostBulkDeleteAsync()
         {
+            var denied = await CheckDeleteAccessAsync();
+            if (denied != null) return denied;
             if (SelectedRecordIds == null || SelectedRecordIds.Count == 0)
             {
                 TempData["ErrorMessage"] =
@@ -238,6 +245,7 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var recordsToDelete = await _db.MDRecords
                 .Where(record => selectedIds.Contains(record.RecordID))
                 .ToListAsync();
@@ -250,14 +258,53 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
+            await AddDeleteAuditsAsync(recordsToDelete);
             _db.MDRecords.RemoveRange(recordsToDelete);
 
             await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             TempData["SuccessMessage"] =
                 $"{recordsToDelete.Count} selected M&D record(s) deleted successfully.";
 
             return RedirectToPage();
+        }
+
+        private async Task<IActionResult?> CheckDeleteAccessAsync()
+        {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
+            var role = await _db.PortalUsers.AsNoTracking().Where(u => u.IsActive && u.Username == username)
+                .Select(u => u.Role).FirstOrDefaultAsync();
+            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ? null : StatusCode(403);
+        }
+
+        private async Task AddDeleteAuditsAsync(IEnumerable<MDEntity> records)
+        {
+            var list = records.ToList();
+            var ids = list.Select(r => r.Id).ToList();
+            var tasks = await _db.DeliverableTasks.AsNoTracking().Where(t => ids.Contains(t.DeliverableId))
+                .Include(t => t.Targets).ThenInclude(t => t.Steps).AsSplitQuery().ToListAsync();
+            foreach (var record in list)
+                _db.MDAuditLogs.Add(new MDAuditLog
+                {
+                    TimestampUtc = DateTime.UtcNow,
+                    Username = HttpContext.Session.GetString("Username")!, RecordCode = record.RecordID,
+                    Action = "Delete", ChangedField = "Deliverable and language tasks",
+                    OldValue = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        Record = record,
+                        Tasks = tasks.Where(t => t.DeliverableId == record.Id).Select(t => new
+                        {
+                            t.Language, t.AssignedUserId,
+                            Targets = t.Targets.Select(x => new
+                            {
+                                x.TargetNumber, x.AssignedUserId, x.IsCancelled, x.CancellationReason, x.GnApprovalReference,
+                                Steps = x.Steps.Select(s => new { s.StepNumber, s.Status, s.MinutesSpent, s.CompletedAtUtc })
+                            })
+                        })
+                    })
+                });
         }
 
         // CASE-INSENSITIVE SEARCH
@@ -279,9 +326,16 @@ namespace QMSApplication.Pages
     .OrderBy(x => x.Id)
     .ToList();
 
+            var taskCounts = _db.DeliverableTasks.AsNoTracking()
+                .GroupBy(t => t.DeliverableId)
+                .Select(g => new { DeliverableId = g.Key, Count = g.Count() })
+                .ToDictionary(g => g.DeliverableId, g => g.Count);
+
             Records = entities.Select(x => new MDRecord
             {
                 RecordID = x.RecordID,
+                DeliverableId = x.Id,
+                TaskCount = taskCounts.GetValueOrDefault(x.Id),
                 DepartmentName = x.DepartmentName,
                 SNo = x.SNo,
 

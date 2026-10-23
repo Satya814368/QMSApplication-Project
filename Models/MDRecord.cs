@@ -2,6 +2,8 @@
 {
     public class MDRecord
     {
+        public long DeliverableId { get; set; }
+        public int TaskCount { get; set; }
         public string? RecordID { get; set; }
         public string? DepartmentName { get; set; }
         public string? SNo { get; set; }

@@ -623,6 +623,7 @@
                         <th>Department Name</th>
                         <th>Milestone Name</th>
                         <th>Deliverable Name</th>
+                        <th>No. of Tasks</th>
                         <th>Deliverable Type</th>
                         <th>Milestone Target Date</th>
                         <th>Deliverable Target Date</th>
@@ -656,6 +657,7 @@
                             <td>@record.DepartmentName</td>
                             <td>@record.MilestoneName</td>
                             <td>@record.DeliverableName</td>
+                            <td><a asp-page="/MDTasks" asp-route-id="@record.DeliverableId">@record.TaskCount language tasks</a></td>
                             <td>@record.DeliverableType</td>
                             <td>@record.MilestoneTargetDate</td>
                             <td>@record.DeliverableTargetDate</td>

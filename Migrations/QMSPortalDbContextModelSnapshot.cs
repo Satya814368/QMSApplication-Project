@@ -426,6 +426,132 @@ namespace QMSApplication.Migrations
 
                     b.ToTable("PortalUsers");
                 });
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+            {
+                b.Property<long>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("bigint");
+                b.Property<long>("DeliverableId")
+                    .HasColumnType("bigint");
+                b.Property<string>("Language")
+                    .IsRequired()
+                    .HasMaxLength(80)
+                    .HasColumnType("varchar(80)");
+                b.Property<long>("AssignedUserId")
+                    .HasColumnType("bigint");
+                b.Property<DateTime>("CreatedAtUtc")
+                    .HasColumnType("datetime(6)");
+                b.Property<string>("CreatedBy")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("varchar(100)");
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+                b.HasKey("Id");
+                b.HasIndex("AssignedUserId");
+                b.HasIndex("DeliverableId", "Language").IsUnique();
+                b.ToTable("DeliverableTasks");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
+            {
+                b.Property<long>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("bigint");
+                b.Property<long>("TaskId")
+                    .HasColumnType("bigint");
+                b.Property<string>("TargetNumber")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("varchar(40)");
+                b.Property<long>("AssignedUserId")
+                    .HasColumnType("bigint");
+                b.Property<bool>("IsCancelled")
+                    .HasColumnType("tinyint(1)");
+                b.Property<string>("CancellationReason")
+                    .HasMaxLength(500)
+                    .HasColumnType("varchar(500)");
+                b.Property<string>("GnApprovalReference")
+                    .HasMaxLength(200)
+                    .HasColumnType("varchar(200)");
+                b.Property<DateTime?>("CancelledAtUtc")
+                    .HasColumnType("datetime(6)");
+                b.Property<DateTime>("UpdatedAtUtc")
+                    .HasColumnType("datetime(6)");
+                b.Property<string>("UpdatedBy")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("varchar(100)");
+                b.Property<Guid>("ConcurrencyToken")
+                    .IsConcurrencyToken()
+                    .HasColumnType("char(36)")
+                    .UseCollation("ascii_general_ci");
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+                b.HasKey("Id");
+                b.HasIndex("AssignedUserId");
+                b.HasIndex("TaskId", "TargetNumber").IsUnique();
+                b.ToTable("DeliverableTargets");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.TargetProgressStep", b =>
+            {
+                b.Property<long>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("bigint");
+                b.Property<long>("TargetId")
+                    .HasColumnType("bigint");
+                b.Property<int>("StepNumber")
+                    .HasColumnType("int");
+                b.Property<string>("Status")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("varchar(20)");
+                b.Property<long>("MinutesSpent")
+                    .HasColumnType("bigint");
+                b.Property<DateTime?>("CompletedAtUtc")
+                    .HasColumnType("datetime(6)");
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+                b.HasKey("Id");
+                b.HasIndex("TargetId", "StepNumber").IsUnique();
+                b.ToTable("TargetProgressSteps");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+            {
+                b.HasOne("QMSApplication.Models.MDEntity", "Deliverable")
+                    .WithMany().HasForeignKey("DeliverableId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Deliverable");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+            {
+                b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
+                    .WithMany().HasForeignKey("AssignedUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                b.Navigation("AssignedUser");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
+            {
+                b.HasOne("QMSApplication.Models.DeliverableTask", "Task")
+                    .WithMany("Targets").HasForeignKey("TaskId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Task");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
+            {
+                b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
+                    .WithMany().HasForeignKey("AssignedUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                b.Navigation("AssignedUser");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.TargetProgressStep", b =>
+            {
+                b.HasOne("QMSApplication.Models.DeliverableTarget", "Target")
+                    .WithMany("Steps").HasForeignKey("TargetId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Target");
+            });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b => b.Navigation("Targets"));
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b => b.Navigation("Steps"));
 #pragma warning restore 612, 618
         }
     }
