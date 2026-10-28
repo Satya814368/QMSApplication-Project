@@ -1,0 +1,50 @@
+@page
+@model QMSApplication.Pages.MyTasksModel
+@{
+    ViewData["Title"] = "My Tasks";
+}
+<div class="container-fluid py-3">
+    <h1 class="h3 mb-2">My Tasks</h1>
+    <p class="text-muted">Deliverables and targets assigned to your signed-in account.</p>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card p-3"><span class="text-muted">Assigned deliverables</span><strong class="fs-3">@Model.Deliverables.Count</strong></div></div>
+        <div class="col-md-4"><div class="card p-3"><span class="text-muted">Language tasks</span><strong class="fs-3">@Model.TotalLanguageTasks</strong></div></div>
+        <div class="col-md-4"><div class="card p-3"><span class="text-muted">Targets</span><strong class="fs-3">@Model.TotalTargets</strong></div></div>
+    </div>
+    @if (Model.Deliverables.Count == 0)
+    {
+        <div class="alert alert-info">No tasks are assigned to your account yet. Tasks appear here after a deliverable or target is assigned to you.</div>
+    }
+    @foreach (var item in Model.Deliverables)
+    {
+        <section class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                    <div>
+                        <h2 class="h5 mb-1">@item.Record.DeliverableName <small class="text-muted">(@item.Record.RecordID)</small></h2>
+                        <p class="mb-2 text-muted">Milestone: @item.Record.MilestoneName · Department: @item.Record.DepartmentName</p>
+                    </div>
+                    <span class="badge bg-primary">@(item.Record.Status ?? "Not Started")</span>
+                </div>
+                <p class="mb-2"><strong>Due:</strong> @(item.Record.DeliverableTargetDate?.ToString("dd MMM yyyy") ?? "Not set") · <strong>Assignment:</strong> @(item.DirectlyAssigned ? "Deliverable" : "Language / target")</p>
+                @if (item.Languages.Count > 0)
+                {
+                    <p class="mb-2"><strong>Languages:</strong> @string.Join(", ", item.Languages.Distinct())</p>
+                }
+                @if (item.Targets.Count > 0)
+                {
+                    <div class="table-responsive"><table class="table table-sm table-striped align-middle">
+                        <thead><tr><th>Language</th><th>Target number</th><th>Progress</th></tr></thead>
+                        <tbody>
+                        @foreach (var target in item.Targets)
+                        {
+                            <tr><td>@target.Language</td><td>@target.Number</td><td>@(target.Cancelled ? "Cancelled" : $"{target.CompletedSteps}/14 steps")</td></tr>
+                        }
+                        </tbody>
+                    </table></div>
+                }
+                <a class="btn btn-outline-primary btn-sm" asp-page="/MDTasks" asp-route-id="@item.Record.Id">Open task details</a>
+            </div>
+        </section>
+    }
+</div>

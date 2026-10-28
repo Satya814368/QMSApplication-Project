@@ -1,4 +1,4 @@
-﻿@{
+@{
     var page = (ViewContext.RouteData.Values["page"]?.ToString() ?? Context.Request.Path.Value ?? "").TrimEnd('/');
     var key = page.Trim('/').ToLowerInvariant();
     var module = Context.Request.Query["module"].ToString();
@@ -11,7 +11,7 @@
     var title = ViewData["Title"]?.ToString() ?? key switch
     {
         "md" => "Milestones & Deliverables", "mdedit" => "Edit Deliverable", "mdview" => "View Deliverable",
-        "mdtasks" => "Deliverable Tasks", "mdimport" => "Import Deliverables", _ => "Project Management Tool"
+        "mdtasks" => "Deliverable Tasks", "mytasks" => "My Tasks", "mdimport" => "Import Deliverables", _ => "Project Management Tool"
     };
     var section = key.StartsWith("md") || key == "importhistory" ? "records" :
         key.StartsWith("notification") && key != "notifications" ? "notificationadmin" :
@@ -22,7 +22,7 @@
         (Title: "Dashboard", Page: "/Dashboard", Module: "", Key: "dashboard", Icon: "dashboard"),
         (Title: "M & D", Page: "/md", Module: "", Key: "records", Icon: "records"),
         (Title: "Reports", Page: "/comingsoon", Module: "Reports", Key: "reports", Icon: "chart"),
-        (Title: "My Tasks", Page: "/comingsoon", Module: "MyTasks", Key: "mytasks", Icon: "tasks"),
+        (Title: "My Tasks", Page: "/MyTasks", Module: "", Key: "mytasks", Icon: "tasks"),
         (Title: "My Team", Page: "/comingsoon", Module: "MyTeam", Key: "myteam", Icon: "team"),
         (Title: "Time Sheets", Page: "/comingsoon", Module: "TimeSheets", Key: "timesheets", Icon: "clock"),
         (Title: "Guidelines", Page: "/Guidelines", Module: "", Key: "guidelines", Icon: "book"),

@@ -41,6 +41,13 @@ public class MDTasksModel : PageModel
         if (_actor == null) return StatusCode(403);
         var deliverable = await _db.MDRecords.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (deliverable == null) return NotFound();
+        // Direct URL access must not expose another user's assigned tasks.
+        var hasAssignment = string.Equals(deliverable.AssignedTo, _actor.Username, StringComparison.OrdinalIgnoreCase)
+            || await _db.DeliverableTasks.AnyAsync(t => t.DeliverableId == id &&
+                (t.AssignedUserId == _actor.Id || t.Targets.Any(x => x.AssignedUserId == _actor.Id)));
+        if (!TaskWorkflow.CanManage(_actor.Role) && !hasAssignment &&
+            !string.Equals(deliverable.CreatedBy, _actor.Username, StringComparison.OrdinalIgnoreCase))
+            return StatusCode(403);
         Deliverable = deliverable;
         ActiveUsers = await _db.PortalUsers.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.FullName)
             .Select(x => new PortalUser { Id = x.Id, Username = x.Username, FullName = x.FullName }).ToListAsync();
