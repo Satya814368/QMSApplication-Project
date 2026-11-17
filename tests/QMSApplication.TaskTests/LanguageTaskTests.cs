@@ -167,13 +167,13 @@ public class LanguageTaskTests
     public async Task NextValidatesMandatoryDatesWithoutSavingDeliverable()
     {
         await using var f = await Fixture.Create();
-        var page = f.CreatePage(f.Member);
+        var page = f.CreatePage(f.Manager);
         page.Input.MilestoneTargetDate = null;
         Assert.IsType<PageResult>(await page.OnPostNextAsync());
         Assert.False(page.ShowTasks);
         Assert.False(page.ModelState.IsValid);
         Assert.Equal(1, await f.Db.MDRecords.CountAsync());
-        page = f.CreatePage(f.Member);
+        page = f.CreatePage(f.Manager);
         Assert.IsType<PageResult>(await page.OnPostNextAsync());
         Assert.True(page.ShowTasks);
         Assert.Equal(1, await f.Db.MDRecords.CountAsync());
@@ -181,21 +181,21 @@ public class LanguageTaskTests
     }
 
     [Fact]
-    public async Task UserCanCreateDeliverableAndManageItsLanguageTasks()
+    public async Task ManagerCanCreateOwnedDeliverableAndManageItsLanguageTasks()
     {
         await using var f = await Fixture.Create();
-        var page = f.CreatePage(f.Member);
+        var page = f.CreatePage(f.Manager);
         var result = Assert.IsType<RedirectToPageResult>(await page.OnPostAsync());
         Assert.Equal("/MDTasks", result.PageName);
         var created = await f.Db.MDRecords.SingleAsync(x => x.RecordID == "MD-0002");
-        Assert.Equal("member", created.CreatedBy);
+        Assert.Equal("manager", created.CreatedBy);
         Assert.Equal("Not Started", created.Status);
         Assert.Equal("23-Oct-2026", created.MilestoneTargetDateSource);
         var tasks = await f.Db.DeliverableTasks.Include(x => x.Targets).ThenInclude(x => x.Steps)
             .Where(x => x.DeliverableId == created.Id).ToListAsync();
         Assert.Equal(2, Assert.Single(tasks).Targets.Count);
         Assert.Equal(28, tasks.SelectMany(x => x.Targets).SelectMany(x => x.Steps).Count());
-        var tracker = f.Page(f.Member, tasks[0].Targets);
+        var tracker = f.Page(f.Manager, tasks[0].Targets);
         Assert.IsType<PageResult>(await tracker.OnGetAsync(created.Id));
         Assert.True(tracker.CanManage);
     }
@@ -204,7 +204,7 @@ public class LanguageTaskTests
     public async Task InvalidTaskDataDoesNotSaveAnyPartOfTheWizard()
     {
         await using var f = await Fixture.Create();
-        var page = f.CreatePage(f.Member);
+        var page = f.CreatePage(f.Manager);
         page.TasksJson = JsonSerializer.Serialize(new[] { new { Language = "German", Targets = "403024,403024", AssignedUserId = f.Member.Id } });
         Assert.IsType<PageResult>(await page.OnPostAsync());
         Assert.False(page.ModelState.IsValid);
@@ -239,7 +239,8 @@ public class LanguageTaskTests
         await f.SeedTargets();
         var page = f.RecordsPage(f.Member);
         page.SelectedRecordIds = new() { f.Deliverable.RecordID };
-        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await page.OnPostBulkDeleteAsync()).StatusCode);
+        Assert.IsType<RedirectToPageResult>(await page.OnPostBulkDeleteAsync());
+        Assert.NotNull(page.TempData["ErrorMessage"]);
         Assert.Equal(1, await f.Db.MDRecords.CountAsync());
         Assert.Equal(42, await f.Db.TargetProgressSteps.CountAsync());
     }
@@ -284,6 +285,10 @@ public class LanguageTaskTests
                 Deliverable = new MDEntity { RecordID = "MD-0001", DeliverableName = "UG", MilestoneName = "Release" }
             };
             db.AddRange(fixture.Manager, fixture.Member, fixture.Deliverable); await db.SaveChangesAsync();
+            var team = new Team { Name = "Team", NormalizedName = "TEAM", CreatedBy = "manager" }; db.Add(team); await db.SaveChangesAsync();
+            db.Add(new TeamManager { TeamId = team.Id, UserId = fixture.Manager.Id });
+            db.Add(new TeamMembership { TeamId = team.Id, UserId = fixture.Member.Id });
+            fixture.Deliverable.TeamId = team.Id; fixture.Deliverable.AssignedTo = fixture.Member.Username; await db.SaveChangesAsync();
             return fixture;
         }
         public async Task<List<DeliverableTarget>> SeedTargets()
@@ -297,6 +302,8 @@ public class LanguageTaskTests
         {
             var http = new DefaultHttpContext { Session = new TestSession() };
             http.Session.SetString("Username", actor.Username);
+            http.Session.SetString("SecurityStamp", actor.SecurityStamp.ToString());
+            http.Session.SetString("LoggedInUser", actor.FullName);
             return new MDTasksModel(Db)
             {
                 PageContext = new PageContext { HttpContext = http },
@@ -309,12 +316,14 @@ public class LanguageTaskTests
         {
             var http = new DefaultHttpContext { Session = new TestSession() };
             http.Session.SetString("Username", actor.Username);
+            http.Session.SetString("SecurityStamp", actor.SecurityStamp.ToString());
+            http.Session.SetString("LoggedInUser", actor.FullName);
             return new MDCreateModel(Db)
             {
                 PageContext = new PageContext { HttpContext = http }, TempData = new TempDataDictionary(http, new TestTempDataProvider()),
                 Input = new MDCreateModel.InputModel
                 {
-                    MilestoneName = "New release", DeliverableName = "New UG", DepartmentName = "Labeling",
+                    TeamId = Deliverable.TeamId, MilestoneName = "New release", DeliverableName = "New UG", DepartmentName = "Labeling",
                     DeliverableType = "UGs", AssignedTo = actor.Username,
                     MilestoneTargetDate = new DateOnly(2026, 10, 23), DeliverableTargetDate = new DateOnly(2026, 10, 25)
                 },
@@ -325,6 +334,8 @@ public class LanguageTaskTests
         {
             var http = new DefaultHttpContext { Session = new TestSession() };
             http.Session.SetString("Username", actor.Username);
+            http.Session.SetString("SecurityStamp", actor.SecurityStamp.ToString());
+            http.Session.SetString("LoggedInUser", actor.FullName);
             return new MDModel(Db)
             {
                 PageContext = new PageContext { HttpContext = http },

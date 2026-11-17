@@ -62,12 +62,7 @@
             <strong>@(string.IsNullOrWhiteSpace(Model.Username) ? Model.HttpContext.Session.GetString("LoggedInUser") : Model.Username)</strong>
         </p>
 
-        <form method="post">
-            <input type="hidden" asp-for="Username" />
-            <button type="submit">
-                Continue to Dashboard
-            </button>
-        </form>
+        <a asp-page="/Dashboard" class="btn btn-primary w-100">Continue to Dashboard</a>
 
         <form method="post" asp-page-handler="Logout">
             <button type="submit" class="logout">

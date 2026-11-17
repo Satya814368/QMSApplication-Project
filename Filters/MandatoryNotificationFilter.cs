@@ -24,6 +24,9 @@ namespace QMSApplication.Filters
             PageHandlerExecutingContext context,
             PageHandlerExecutionDelegate next)
         {
+            var page = context.ActionDescriptor.ViewEnginePath.Trim('/').ToLowerInvariant();
+            if (new[] { "login", "register", "verifyregistration", "forgotpassword", "resetpassword", "error", "privacy", "index", "index2", "accessdenied" }.Contains(page) || context.HandlerMethod?.Name?.Contains("Logout") == true)
+            { await next(); return; }
             var pagePath = context.HttpContext.Request.Path.Value;
 
             // Allow the Notifications page itself.

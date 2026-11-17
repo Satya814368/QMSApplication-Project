@@ -20,6 +20,12 @@ namespace QMSApplication.Models
         [MaxLength(50)]
         public string Role { get; set; } = "User";
 
+        public bool IsApproved { get; set; } = true;
+        public Guid SecurityStamp { get; set; } = Guid.NewGuid();
+        public Guid Version { get; set; } = Guid.NewGuid();
+        public long? DepartmentId { get; set; }
+        public Department? Department { get; set; }
+        public bool ManagerDepartmentScope { get; set; }
         public bool IsActive { get; set; } = true;
         [MaxLength(255)]
         public string? PasswordHash { get; set; }

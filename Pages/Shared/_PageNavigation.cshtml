@@ -5,12 +5,14 @@
         (Title: "M & D", Url: "/MD", Module: ""),
         (Title: "Reports", Url: "/ComingSoon?module=Reports", Module: "Reports"),
         (Title: "My Tasks", Url: "/MyTasks", Module: ""),
-        (Title: "My Team", Url: "/ComingSoon?module=MyTeam", Module: "MyTeam"),
+        (Title: "My Team", Url: "/MyTeam", Module: ""),
+        (Title: "Manage Users", Url: "/ManageUsers", Module: ""),
         (Title: "Changes", Url: "/ComingSoon?module=Changes", Module: "Changes"),
         (Title: "Time Sheets", Url: "/ComingSoon?module=TimeSheets", Module: "TimeSheets"),
         (Title: "Guidelines", Url: "/Guidelines", Module: ""),
         (Title: "Settings", Url: "/ComingSoon?module=Settings", Module: "Settings")
-    };
+    }.Where(p => (p.Title != "Manage Users" || QMSApplication.Data.TeamSetupService.Role(Context.Session.GetString("UserRole")) == "Admin")
+        && (p.Title != "My Team" || new[] { "Admin", "Manager", "Team Lead" }.Contains(QMSApplication.Data.TeamSetupService.Role(Context.Session.GetString("UserRole"))))).ToArray();
 
     var currentPath = Context.Request.Path.Value?.TrimEnd('/') ?? "/";
     var currentModule = Context.Request.Query["module"].ToString();

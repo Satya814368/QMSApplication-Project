@@ -1,0 +1,12 @@
+@page
+@model QMSApplication.Pages.ReportsModel
+@{ ViewData["Title"]="Reports"; }
+<h1 class="h3">Deliverable report</h1>
+<p>Totals include only deliverables your account can view.</p>
+<div class="row g-3 mb-4"><div class="col-sm-4"><div class="card p-3">Total<strong class="fs-3">@Model.Total</strong></div></div><div class="col-sm-4"><div class="card p-3">Completed<strong class="fs-3">@Model.Completed</strong></div></div><div class="col-sm-4"><div class="card p-3">Overdue<strong class="fs-3">@Model.Overdue</strong></div></div></div>
+<form method="get" class="d-flex gap-2 mb-3"><label for="Search" class="visually-hidden">Record ID or deliverable name</label><input asp-for="Search" class="form-control" maxlength="200" placeholder="Record ID or deliverable name" /><button class="btn btn-primary">Search</button></form>
+<p>@Model.FilteredCount matching deliverables · Page @Model.PageNumber of @Model.PageCount</p>
+<div class="table-responsive"><table class="table"><thead><tr><th>Record</th><th>Deliverable</th><th>Department</th><th>Assigned to</th><th>Target date</th><th>Status</th></tr></thead><tbody>
+@foreach(var record in Model.Records) { <tr><td><a asp-page="/MDView" asp-route-id="@record.RecordID">@record.RecordID</a></td><td>@record.DeliverableName</td><td>@record.DepartmentName</td><td>@record.AssignedTo</td><td>@record.DeliverableTargetDate?.ToString("dd-MMM-yyyy")</td><td>@record.Status</td></tr> }
+</tbody></table></div>
+<nav aria-label="Report pages" class="d-flex gap-2">@if(Model.PageNumber>1){<a asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a>}@if(Model.PageNumber<Model.PageCount){<a asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a>}</nav>

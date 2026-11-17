@@ -39,15 +39,19 @@ namespace QMSApplication.Pages
                 return RedirectToPage("/Login");
             }
 
-            // Load active users from MySQL
+            var access = new QMSApplication.Security.AccessService(_db);
+            var actor = await access.Current(HttpContext);
+            if (actor == null) return RedirectToPage("/Login");
+            // Load only users referenced by visible records
+            var visibleRecords = access.Records(actor);
             ActiveUsers = await _db.PortalUsers
                 .AsNoTracking()
-                .Where(x => x.IsActive)
+                .Where(x => x.IsActive && x.IsApproved && visibleRecords.Any(r => r.AssignedTo == x.Username || r.AssignedTo == x.FullName))
                 .OrderBy(x => x.FullName)
                 .ToListAsync();
 
             // Start with completed UG records
-            var query = _db.MDRecords
+            var query = access.Records(actor)
                 .AsNoTracking()
                 .Where(x =>
                     x.DeliverableType != null &&

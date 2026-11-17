@@ -19,16 +19,19 @@ namespace QMSApplication.Pages
         [BindProperty(SupportsGet = true)]
         public string? Query { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
+            var access = new QMSApplication.Security.AccessService(_db);
+            var actor = await access.Current(HttpContext);
+            if (actor == null) return RedirectToPage("/Login");
             if (string.IsNullOrWhiteSpace(Query))
             {
-                return;
+                return Page();
             }
 
             Query = Query.Trim();
 
-            Results = await _db.MDRecords
+            Results = await access.Records(actor)
                 .AsNoTracking()
                 .Where(x =>
                     (x.MilestoneName != null &&
@@ -43,7 +46,8 @@ namespace QMSApplication.Pages
                     (x.Status != null &&
                      x.Status.Contains(Query)))
                 .OrderBy(x => x.Id)
-                .ToListAsync();
+                .Take(200).ToListAsync();
+            return Page();
         }
     }
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
@@ -15,6 +15,7 @@ namespace QMSApplication.Pages
         }
 
         public List<Notification> Notifications { get; set; } = new();
+        public Dictionary<long, List<string>> UnacknowledgedUsernames { get; set; } = new();
 
         private bool IsAdminOrManager()
         {
@@ -35,6 +36,41 @@ namespace QMSApplication.Pages
                 .AsNoTracking()
                 .OrderByDescending(x => x.NotificationDateUtc)
                 .ToListAsync();
+
+            var activeUsers = await _db.PortalUsers.AsNoTracking()
+                .Where(x => x.IsActive)
+                .Select(x => new { x.Username, x.FullName, x.Role })
+                .ToListAsync();
+            var statuses = await _db.NotificationUserStatuses.AsNoTracking()
+                .Where(x => Notifications.Select(n => n.Id).Contains(x.NotificationId))
+                .ToListAsync();
+
+            foreach (var notification in Notifications)
+            {
+                if (!notification.IsPublished || !notification.IsMandatory)
+                {
+                    UnacknowledgedUsernames[notification.Id] = new List<string>();
+                    continue;
+                }
+
+                var recipients = string.IsNullOrWhiteSpace(notification.TargetRole)
+                    ? activeUsers
+                    : activeUsers.Where(user => string.Equals(
+                        QMSApplication.Data.TeamSetupService.Role(user.Role),
+                        QMSApplication.Data.TeamSetupService.Role(notification.TargetRole),
+                        StringComparison.OrdinalIgnoreCase)).ToList();
+
+                var acknowledged = statuses
+                    .Where(status => status.NotificationId == notification.Id && status.IsAcknowledged)
+                    .Select(status => status.Username)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                UnacknowledgedUsernames[notification.Id] = recipients
+                    .Where(user => !acknowledged.Contains(user.Username))
+                    .Select(user => $"{user.FullName} ({user.Username})")
+                    .OrderBy(name => name)
+                    .ToList();
+            }
 
             return Page();
         }

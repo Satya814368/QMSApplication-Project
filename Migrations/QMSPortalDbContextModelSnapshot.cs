@@ -22,6 +22,124 @@ namespace QMSApplication.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AssignedUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("GnApprovalReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("TargetNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<long>("TaskId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId");
+
+                    b.HasIndex("TaskId", "TargetNumber")
+                        .IsUnique();
+
+                    b.ToTable("DeliverableTargets");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AssignedUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<long>("DeliverableId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId");
+
+                    b.HasIndex("DeliverableId", "Language")
+                        .IsUnique();
+
+                    b.ToTable("DeliverableTasks");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.Department", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Departments");
+                });
+
             modelBuilder.Entity("QMSApplication.Models.Guideline", b =>
                 {
                     b.Property<long>("Id")
@@ -273,6 +391,9 @@ namespace QMSApplication.Migrations
                     b.Property<string>("Status")
                         .HasColumnType("longtext");
 
+                    b.Property<long?>("TeamId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("UGs")
                         .HasColumnType("longtext");
 
@@ -283,6 +404,8 @@ namespace QMSApplication.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TeamId");
 
                     b.ToTable("MDRecords");
                 });
@@ -384,6 +507,44 @@ namespace QMSApplication.Migrations
                     b.ToTable("NotificationUserStatuses");
                 });
 
+            modelBuilder.Entity("QMSApplication.Models.PasswordResetRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "RequestedAtUtc");
+
+                    b.ToTable("PasswordResetRequests");
+                });
+
             modelBuilder.Entity("QMSApplication.Models.PortalUser", b =>
                 {
                     b.Property<long>("Id")
@@ -391,6 +552,9 @@ namespace QMSApplication.Migrations
                         .HasColumnType("bigint");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("DepartmentId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Email")
                         .HasMaxLength(200)
@@ -402,6 +566,12 @@ namespace QMSApplication.Migrations
                         .HasColumnType("varchar(200)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ManagerDepartmentScope")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MobileNumber")
@@ -417,6 +587,203 @@ namespace QMSApplication.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<Guid>("SecurityStamp")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("PortalUsers");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.RegistrationChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsSent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastSentAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("MobileNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("OwnerHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("SendCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("Email", "CreatedAtUtc");
+
+                    b.HasIndex("OwnerHash", "LastSentAtUtc");
+
+                    b.ToTable("RegistrationChallenges");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.TargetProgressStep", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("MinutesSpent")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("StepNumber")
+                        .HasColumnType("int");
+
+                    b.Property<long>("TargetId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetId", "StepNumber")
+                        .IsUnique();
+
+                    b.ToTable("TargetProgressSteps");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.Team", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<long?>("DepartmentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LeadUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("LeadUserId")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.TeamAuditEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("TimestampUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -424,134 +791,187 @@ namespace QMSApplication.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PortalUsers");
+                    b.ToTable("TeamAuditEvents");
                 });
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
-            {
-                b.Property<long>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("bigint");
-                b.Property<long>("DeliverableId")
-                    .HasColumnType("bigint");
-                b.Property<string>("Language")
-                    .IsRequired()
-                    .HasMaxLength(80)
-                    .HasColumnType("varchar(80)");
-                b.Property<long>("AssignedUserId")
-                    .HasColumnType("bigint");
-                b.Property<DateTime>("CreatedAtUtc")
-                    .HasColumnType("datetime(6)");
-                b.Property<string>("CreatedBy")
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .HasColumnType("varchar(100)");
-                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
-                b.HasKey("Id");
-                b.HasIndex("AssignedUserId");
-                b.HasIndex("DeliverableId", "Language").IsUnique();
-                b.ToTable("DeliverableTasks");
-            });
+
+            modelBuilder.Entity("QMSApplication.Models.TeamManager", b =>
+                {
+                    b.Property<long>("TeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("TeamId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TeamManagers");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.TeamMembership", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("TeamMemberships");
+                });
 
             modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
-            {
-                b.Property<long>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("bigint");
-                b.Property<long>("TaskId")
-                    .HasColumnType("bigint");
-                b.Property<string>("TargetNumber")
-                    .IsRequired()
-                    .HasMaxLength(40)
-                    .HasColumnType("varchar(40)");
-                b.Property<long>("AssignedUserId")
-                    .HasColumnType("bigint");
-                b.Property<bool>("IsCancelled")
-                    .HasColumnType("tinyint(1)");
-                b.Property<string>("CancellationReason")
-                    .HasMaxLength(500)
-                    .HasColumnType("varchar(500)");
-                b.Property<string>("GnApprovalReference")
-                    .HasMaxLength(200)
-                    .HasColumnType("varchar(200)");
-                b.Property<DateTime?>("CancelledAtUtc")
-                    .HasColumnType("datetime(6)");
-                b.Property<DateTime>("UpdatedAtUtc")
-                    .HasColumnType("datetime(6)");
-                b.Property<string>("UpdatedBy")
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .HasColumnType("varchar(100)");
-                b.Property<Guid>("ConcurrencyToken")
-                    .IsConcurrencyToken()
-                    .HasColumnType("char(36)")
-                    .UseCollation("ascii_general_ci");
-                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
-                b.HasKey("Id");
-                b.HasIndex("AssignedUserId");
-                b.HasIndex("TaskId", "TargetNumber").IsUnique();
-                b.ToTable("DeliverableTargets");
-            });
+                {
+                    b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QMSApplication.Models.DeliverableTask", "Task")
+                        .WithMany("Targets")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedUser");
+
+                    b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+                {
+                    b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QMSApplication.Models.MDEntity", "Deliverable")
+                        .WithMany()
+                        .HasForeignKey("DeliverableId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedUser");
+
+                    b.Navigation("Deliverable");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.MDEntity", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.PasswordResetRequest", b =>
+                {
+                    b.HasOne("QMSApplication.Models.PortalUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.PortalUser", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Department");
+                });
 
             modelBuilder.Entity("QMSApplication.Models.TargetProgressStep", b =>
-            {
-                b.Property<long>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("bigint");
-                b.Property<long>("TargetId")
-                    .HasColumnType("bigint");
-                b.Property<int>("StepNumber")
-                    .HasColumnType("int");
-                b.Property<string>("Status")
-                    .IsRequired()
-                    .HasMaxLength(20)
-                    .HasColumnType("varchar(20)");
-                b.Property<long>("MinutesSpent")
-                    .HasColumnType("bigint");
-                b.Property<DateTime?>("CompletedAtUtc")
-                    .HasColumnType("datetime(6)");
-                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
-                b.HasKey("Id");
-                b.HasIndex("TargetId", "StepNumber").IsUnique();
-                b.ToTable("TargetProgressSteps");
-            });
+                {
+                    b.HasOne("QMSApplication.Models.DeliverableTarget", "Target")
+                        .WithMany("Steps")
+                        .HasForeignKey("TargetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
-            {
-                b.HasOne("QMSApplication.Models.MDEntity", "Deliverable")
-                    .WithMany().HasForeignKey("DeliverableId").OnDelete(DeleteBehavior.Cascade).IsRequired();
-                b.Navigation("Deliverable");
-            });
+                    b.Navigation("Target");
+                });
 
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
-            {
-                b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
-                    .WithMany().HasForeignKey("AssignedUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("AssignedUser");
-            });
+            modelBuilder.Entity("QMSApplication.Models.Team", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QMSApplication.Models.PortalUser", "LeadUser")
+                        .WithMany()
+                        .HasForeignKey("LeadUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Department");
+
+                    b.Navigation("LeadUser");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.TeamManager", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QMSApplication.Models.PortalUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.TeamMembership", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QMSApplication.Models.PortalUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
 
             modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
-            {
-                b.HasOne("QMSApplication.Models.DeliverableTask", "Task")
-                    .WithMany("Targets").HasForeignKey("TaskId").OnDelete(DeleteBehavior.Cascade).IsRequired();
-                b.Navigation("Task");
-            });
+                {
+                    b.Navigation("Steps");
+                });
 
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b =>
-            {
-                b.HasOne("QMSApplication.Models.PortalUser", "AssignedUser")
-                    .WithMany().HasForeignKey("AssignedUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("AssignedUser");
-            });
-
-            modelBuilder.Entity("QMSApplication.Models.TargetProgressStep", b =>
-            {
-                b.HasOne("QMSApplication.Models.DeliverableTarget", "Target")
-                    .WithMany("Steps").HasForeignKey("TargetId").OnDelete(DeleteBehavior.Cascade).IsRequired();
-                b.Navigation("Target");
-            });
-
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b => b.Navigation("Targets"));
-            modelBuilder.Entity("QMSApplication.Models.DeliverableTarget", b => b.Navigation("Steps"));
+            modelBuilder.Entity("QMSApplication.Models.DeliverableTask", b =>
+                {
+                    b.Navigation("Targets");
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -461,14 +461,22 @@
 
 
 <div style="margin: 15px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-    <a asp-page="/MDCreate" class="button apply-button">
-        + Add New Deliverable
-    </a>
+    @if (Model.CanCreateDeliverable)
+    {
+        <a asp-page="/MDCreate" class="button apply-button">
+            + Add New Deliverable
+        </a>
+    }
 
-    <a asp-page="/MDImport" class="button apply-button">
-        Bulk Upload
-    </a>
+    @if (Model.CanBulkUpload)
+    {
+        <a asp-page="/MDImport" class="button apply-button">
+            Bulk Upload
+        </a>
+    }
 
+    @if (Model.CanDeleteAny)
+    {
     <form method="post"
           asp-page-handler="BulkDelete"
           id="bulkDeleteForm"
@@ -482,6 +490,7 @@
             Delete Selected (<span id="selectedCount">0</span>)
         </button>
     </form>
+    }
 
 </div>
 
@@ -612,9 +621,12 @@
                 <thead>
                     <tr>
                         <th style="min-width: 45px;">
+                            @if (Model.CanDeleteAny)
+                            {
                             <input type="checkbox"
                                 id="selectAllRecords"
                                     title="Select all records" />
+                            }
                         </th>
                         <th>Record ID</th>
                         <th>Department Name</th>
@@ -643,12 +655,15 @@
                     {
                         <tr>
                             <td>
+                                @if (record.CanDelete)
+                                {
                                 <input type="checkbox"
                                        class="record-checkbox"
                                        name="SelectedRecordIds"
                                        value="@record.RecordID"
                                        form="bulkDeleteForm"
                                        aria-label="Select record @record.RecordID" />
+                                }
                             </td>
                             <td class="record-id">@record.RecordID</td>
                             <td>@record.DepartmentName</td>
@@ -668,7 +683,7 @@
                             <td>@record.Remarks</td>
                             <td>@record.UGs</td>
 
-                            <!-- VIEW, EDIT AND DELETE -->
+                            <!-- VIEW AND AUTHORIZED DELETE -->
                             <td>
                                 <a class="action-link"
                                    asp-page="/MDView"
@@ -676,12 +691,9 @@
                                     View
                                 </a>
 
-                                <a class="action-link"
-                                   asp-page="/MDEdit"
-                                   asp-route-id="@record.RecordID">
-                                    Edit
-                                </a>
-
+                                @if (record.CanEdit) { <a class="action-link" asp-page="/MDEdit" asp-route-id="@record.RecordID">Edit</a> }
+                                @if (record.CanDelete)
+                                {
                                 <form method="post"
                                       asp-page-handler="Delete"
                                       asp-route-id="@record.RecordID"
@@ -692,6 +704,7 @@
                                         Delete
                                     </button>
                                 </form>
+                                }
                             </td>
 
                             <td>

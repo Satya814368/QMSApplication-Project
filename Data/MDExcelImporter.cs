@@ -15,8 +15,14 @@ namespace QMSApplication.Data
             _db = db;
         }
 
-        public async Task<int> ImportAsync(IFormFile excelFile)
+        public async Task<int> ImportAsync(IFormFile excelFile, long teamId, string actorUsername)
         {
+            var actor = await _db.PortalUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Username == actorUsername && x.IsActive && x.IsApproved);
+            var access = new QMSApplication.Security.AccessService(_db);
+            if (actor == null || QMSApplication.Security.AccessService.Role(actor) is not ("Admin" or "Manager") || !await access.ManagedTeams(actor).AnyAsync(x => x.Id == teamId))
+                throw new InvalidOperationException("You cannot import into that team.");
+            var allowed = await access.Assignees(teamId).ToListAsync();
+            var team = await _db.Teams.AsNoTracking().Include(x => x.Department).SingleAsync(x => x.Id == teamId);
             if (excelFile == null || excelFile.Length == 0)
             {
                 throw new InvalidOperationException(
@@ -77,7 +83,7 @@ namespace QMSApplication.Data
                     DateTime.UtcNow,
 
                 ImportedBy =
-                    "System",
+                    actorUsername,
 
                 Status =
                     "Started"
@@ -374,6 +380,15 @@ namespace QMSApplication.Data
                             row.Cell(16).GetString())
                 };
 
+                record.TeamId = teamId; record.CreatedBy = actorUsername; record.UpdatedBy = actorUsername;
+                record.CreatedAtUtc = DateTime.UtcNow; record.UpdatedAtUtc = DateTime.UtcNow;
+                if (team.Department != null) record.DepartmentName = team.Department.Name;
+                if (!string.IsNullOrWhiteSpace(record.AssignedTo))
+                {
+                    var matches = allowed.Where(x => string.Equals(x.Username, record.AssignedTo, StringComparison.OrdinalIgnoreCase) || string.Equals(x.FullName, record.AssignedTo, StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (matches.Count != 1) throw new InvalidOperationException("Every assigned person in the import must uniquely match an approved member of the selected team. Prefer usernames.");
+                    record.AssignedTo = matches[0].Username;
+                }
                 _db.MDRecords.Add(record);
 
                 successfulRecords++;

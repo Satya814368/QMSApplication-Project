@@ -1,176 +1,37 @@
-using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using QMSApplication.Models;
-
-namespace QMSApplication.Pages
+using QMSApplication.Security;
+namespace QMSApplication.Pages;
+public class RegisterModel : PageModel
 {
-    public class RegisterModel : PageModel
+    private readonly RegistrationOtpService _registration;
+    public RegisterModel(RegistrationOtpService registration) => _registration = registration;
+    [BindProperty, Required, StringLength(100)] public string FirstName { get; set; } = "";
+    [BindProperty, Required, StringLength(99)] public string LastName { get; set; } = "";
+    [BindProperty, Required, RegularExpression(@"[A-Za-z0-9_.-]{3,100}")] public string Username { get; set; } = "";
+    [BindProperty, Required, StringLength(128, MinimumLength = 12)] public string Password { get; set; } = "";
+    [BindProperty, Required, EmailAddress, StringLength(200)] public string Email { get; set; } = "";
+    [BindProperty, Required, StringLength(20)] public string MobileNumber { get; set; } = "";
+    public bool Verified { get; private set; }
+    public bool IsDemo => _registration.IsDemo;
+    public bool EmailConfigured => _registration.CanSend;
+    public void OnGet()
     {
-        private readonly QMSPortalDbContext _db;
-        private readonly PasswordHasher<PortalUser> _passwordHasher;
-
-        public RegisterModel(QMSPortalDbContext db)
-        {
-            _db = db;
-            _passwordHasher = new PasswordHasher<PortalUser>();
-        }
-
-        [BindProperty]
-        public string? FirstName { get; set; }
-
-        [BindProperty]
-        public string? LastName { get; set; }
-
-        [BindProperty]
-        public string? Username { get; set; }
-
-        [BindProperty]
-        public string? Password { get; set; }
-
-        [BindProperty]
-        public string? Email { get; set; }
-
-        [BindProperty]
-        public string? MobileNumber { get; set; }
-
-        [BindProperty]
-        public string? Otp { get; set; }
-
-        public string? Message { get; set; }
-        public string? ErrorMessage { get; set; }
-        public bool ShowOtpSection { get; set; }
-
-        private const string DemoOtp = "123456";
-
-        public void OnGet()
-        {
-        }
-
-        public async Task<IActionResult> OnPostSendOtpAsync()
-        {
-            if (string.IsNullOrWhiteSpace(FirstName))
-                return SetError("Please enter your first name.");
-
-            if (string.IsNullOrWhiteSpace(LastName))
-                return SetError("Please enter your last name.");
-
-            if (string.IsNullOrWhiteSpace(Username))
-                return SetError("Please enter your username.");
-
-            if (string.IsNullOrWhiteSpace(Password))
-                return SetError("Please enter your password.");
-
-            if (Password.Length < 8)
-                return SetError("Password must contain at least 8 characters.");
-
-            if (string.IsNullOrWhiteSpace(Email))
-                return SetError("Please enter your email.");
-
-            if (string.IsNullOrWhiteSpace(MobileNumber))
-                return SetError("Please enter your mobile number.");
-
-            string username = Username.Trim();
-            string email = Email.Trim();
-            string mobile = MobileNumber.Trim();
-
-            bool usernameExists = await _db.PortalUsers.AnyAsync(u =>
-                u.Username.ToLower() == username.ToLower());
-
-            if (usernameExists)
-                return SetError("Username already exists.");
-
-            bool emailExists = await _db.PortalUsers.AnyAsync(u =>
-                u.Email != null &&
-                u.Email.ToLower() == email.ToLower());
-
-            if (emailExists)
-                return SetError("Email is already registered.");
-
-            bool mobileExists = await _db.PortalUsers.AnyAsync(u =>
-                u.MobileNumber == mobile);
-
-            if (mobileExists)
-                return SetError("Mobile number is already registered.");
-
-            ShowOtpSection = true;
-            Message = "Your details have been accepted. Please enter the Demo OTP.";
-
-            return Page();
-        }
-
-        public async Task<IActionResult> OnPostRegisterAsync()
-        {
-            ShowOtpSection = true;
-
-            if (string.IsNullOrWhiteSpace(FirstName) ||
-                string.IsNullOrWhiteSpace(LastName) ||
-                string.IsNullOrWhiteSpace(Username) ||
-                string.IsNullOrWhiteSpace(Password) ||
-                string.IsNullOrWhiteSpace(Email) ||
-                string.IsNullOrWhiteSpace(MobileNumber))
-            {
-                ErrorMessage = "Registration details are missing. Please fill in all fields again.";
-                return Page();
-            }
-
-            if (Password.Length < 8)
-            {
-                ErrorMessage = "Password must contain at least 8 characters.";
-                return Page();
-            }
-
-            if (string.IsNullOrWhiteSpace(Otp) || Otp.Trim() != DemoOtp)
-            {
-                ErrorMessage = "Invalid OTP.";
-                return Page();
-            }
-
-            string username = Username.Trim();
-            string email = Email.Trim();
-            string mobile = MobileNumber.Trim();
-
-            bool usernameExists = await _db.PortalUsers.AnyAsync(u =>
-                u.Username.ToLower() == username.ToLower());
-
-            bool emailExists = await _db.PortalUsers.AnyAsync(u =>
-                u.Email != null &&
-                u.Email.ToLower() == email.ToLower());
-
-            bool mobileExists = await _db.PortalUsers.AnyAsync(u =>
-                u.MobileNumber == mobile);
-
-            if (usernameExists || emailExists || mobileExists)
-            {
-                ErrorMessage =
-                    "Username, email, or mobile number is already registered. Please verify your details.";
-                return Page();
-            }
-
-            var user = new PortalUser
-            {
-                Username = username,
-                FullName = FirstName.Trim() + " " + LastName.Trim(),
-                Email = email,
-                MobileNumber = mobile,
-                Role = "User",
-                IsActive = true
-            };
-
-            user.PasswordHash =
-                _passwordHasher.HashPassword(user, Password);
-
-            _db.PortalUsers.Add(user);
-            await _db.SaveChangesAsync();
-
-            return RedirectToPage("/Login");
-        }
-
-        private IActionResult SetError(string message)
-        {
-            ErrorMessage = message;
-            return Page();
-        }
+        Response.Headers["Cache-Control"] = "no-store";
+        Verified = TempData["RegistrationVerified"] is true;
+    }
+    public async Task<IActionResult> OnPostAsync()
+    {
+        Response.Headers["Cache-Control"] = "no-store";
+        if (!ModelState.IsValid) return Page();
+        var owner = HttpContext.Session.GetString(RegistrationOtpService.SessionOwner) ?? RegistrationOtpService.NewOwner();
+        // Persist before sending: this ties the challenge and later code to this browser session.
+        HttpContext.Session.SetString(RegistrationOtpService.SessionOwner, owner);
+        var result = await _registration.Start(Username, FirstName + " " + LastName, Email, MobileNumber, Password, owner);
+        Password = ""; ModelState.Remove(nameof(Password));
+        if (result.Error != null) { ModelState.AddModelError("", result.Error); return Page(); }
+        HttpContext.Session.SetString(RegistrationOtpService.SessionChallenge, result.Id!.Value.ToString());
+        return RedirectToPage("/VerifyRegistration");
     }
 }

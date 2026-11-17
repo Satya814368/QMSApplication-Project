@@ -72,6 +72,11 @@
 
                     <th style="border:1px solid #ddd;
                         padding:10px;">
+                        Not Acknowledged By
+                    </th>
+
+                    <th style="border:1px solid #ddd;
+                        padding:10px;">
                         Date
                     </th>
 
@@ -121,6 +126,31 @@
                             @(notification.IsAcknowledged
                                 ? "Acknowledged"
                                 : "Not Acknowledged")
+                        </td>
+
+                        <td style="border:1px solid #ddd;
+                            padding:10px; min-width:240px;">
+                            @if (!notification.IsPublished)
+                            {
+                                <span>Not published</span>
+                            }
+                            else if (!notification.IsMandatory)
+                            {
+                                <span>Not required</span>
+                            }
+                            else if (Model.UnacknowledgedUsernames.TryGetValue(notification.Id, out var pendingUsers) && pendingUsers.Count > 0)
+                            {
+                                <ul style="margin:0; padding-left:20px;">
+                                    @foreach (var pendingUser in pendingUsers)
+                                    {
+                                        <li>@pendingUser</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <span>Everyone acknowledged</span>
+                            }
                         </td>
 
                         <td style="border:1px solid #ddd;

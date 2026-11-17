@@ -15,6 +15,8 @@ namespace QMSApplication.Models
 
         [MaxLength(50)]
         public string? DepartmentName { get; set; }
+        public long? TeamId { get; set; }
+        public Team? Team { get; set; }
         public string? SNo { get; set; }
 
         public string? MilestoneName { get; set; }

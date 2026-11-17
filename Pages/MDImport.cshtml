@@ -7,15 +7,8 @@
 
 <h2>M&D Excel Import</h2>
 
-<p>
-    This will import the M&D records from:
-</p>
-
-<p>
-    <strong>C:\QMSData\MilestoneDeliverables.xlsx</strong>
-</p>
-
-<form method="post" enctype="multipart/form-data">
+<p>Upload records into an authorized owning team. Assigned people must match that team.</p>
+<form method="post" enctype="multipart/form-data"><label asp-for="TeamId">Owning team</label><select asp-for="TeamId" class="form-select mb-3" required><option value="">Select team</option>@foreach (var team in Model.AvailableTeams) { <option value="@team.Id">@team.Name</option> }</select>
     <div style="margin: 15px 0;">
         <label for="excelFile">
             Select Excel File (.xlsx):

@@ -10,6 +10,8 @@ namespace QMSApplication.Pages
     public class DashboardModel : PageModel
     {
         private readonly QMSPortalDbContext _db;
+        private PortalUser _actor = null!;
+        private QMSApplication.Security.AccessService Access => new(_db);
 
         public DashboardModel(QMSPortalDbContext db)
         {
@@ -40,6 +42,9 @@ namespace QMSApplication.Pages
 
         public async Task<IActionResult> OnGetAsync(string? username)
         {
+            var actor = await Access.Current(HttpContext);
+            if (actor == null) return RedirectToPage("/Login");
+            _actor = actor;
             string? loggedInUser =
                 HttpContext.Session.GetString("LoggedInUser");
 
@@ -58,7 +63,7 @@ namespace QMSApplication.Pages
 
         private async Task LoadMDCountsAsync()
         {
-            var statuses = await _db.MDRecords
+            var statuses = await Access.Records(_actor)
                 .AsNoTracking()
                 .Select(x => x.Status)
                 .ToListAsync();
@@ -96,7 +101,7 @@ namespace QMSApplication.Pages
 private async Task LoadCompletedUGChartAsync()
         {
             // Retrieve completed UGs from the database.
-            var completedUGRecords = await _db.MDRecords
+            var completedUGRecords = await Access.Records(_actor)
                 .AsNoTracking()
                 .Where(x =>
                     x.DeliverableType != null &&

@@ -26,7 +26,12 @@ namespace QMSApplication.Pages
                 return RedirectToPage("/Login");
             }
 
-            ImportBatches = await _db.ImportBatches
+            var access = new QMSApplication.Security.AccessService(_db);
+            var actor = await access.Current(HttpContext);
+            if (actor == null) return RedirectToPage("/Login");
+            if (QMSApplication.Security.AccessService.Role(actor) is not ("Admin" or "Manager")) return RedirectToPage("/AccessDenied");
+            var isAdmin = QMSApplication.Security.AccessService.Role(actor) == "Admin";
+            ImportBatches = await _db.ImportBatches.Where(x => isAdmin || x.ImportedBy == actor.Username)
                 .AsNoTracking()
                 .OrderByDescending(x => x.ImportedAtUtc)
                 .ToListAsync();

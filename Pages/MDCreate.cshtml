@@ -5,6 +5,10 @@
 }
 <div class="qms-form-card">
 <h2>Add New Deliverable</h2>
+@if (!Model.ShowTasks)
+{
+<form method="get" class="mb-3"><label for="team-picker" class="form-label">Choose owning team before entering details</label><div class="d-flex gap-2"><select id="team-picker" name="Input.TeamId" class="form-select" required><option value="">Select team</option>@foreach (var team in Model.AvailableTeams) { <option value="@team.Id" selected="@(Model.Input.TeamId == team.Id)">@team.Name</option> }</select><button class="btn btn-outline-primary">Load team members</button></div></form>
+}
 <ol class="qms-stepper" aria-label="Deliverable creation steps">
     <li class="@(Model.ShowTasks ? "is-complete" : "is-current")" aria-current="@(!Model.ShowTasks ? "step" : null)"><span class="qms-step-number">1</span>Deliverable details</li>
     <li class="@(Model.ShowTasks ? "is-current" : "")" aria-current="@(Model.ShowTasks ? "step" : null)"><span class="qms-step-number">2</span>Language tasks</li>
@@ -13,6 +17,7 @@
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 <form method="post" asp-page="/MDCreate" asp-page-handler="">
     <input type="hidden" asp-for="TasksJson" />
+    <input type="hidden" asp-for="Input.TeamId" />
     @if (!Model.ShowTasks)
     {
         <div class="qms-form-grid">

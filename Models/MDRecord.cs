@@ -3,6 +3,8 @@
     public class MDRecord
     {
         public long DeliverableId { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanDelete { get; set; }
         public int TaskCount { get; set; }
         public string? RecordID { get; set; }
         public string? DepartmentName { get; set; }

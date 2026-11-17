@@ -1,4 +1,4 @@
-
+﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +15,9 @@ namespace QMSApplication.Pages
             _db = db;
         }
 
+        public bool CanDeleteAny => Records.Any(x => x.CanDelete);
+        public bool CanBulkUpload { get; private set; }
+        public bool CanCreateDeliverable { get; private set; }
         public List<MDRecord> Records { get; set; } = new();
 
         [BindProperty]
@@ -49,8 +52,12 @@ namespace QMSApplication.Pages
         public List<string> Departments { get; set; } = new();
 
         // GET M&D RECORDS AND APPLY FILTERS
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
+            var activeUser = new QMSApplication.Security.AccessService(_db).Current(HttpContext).GetAwaiter().GetResult() != null;
+            if (!activeUser) return RedirectToPage("/AccessDenied");
             LoadRecords();
 
             // FILTER VALUES
@@ -181,6 +188,7 @@ namespace QMSApplication.Pages
                         StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
+            return Page();
         }
 
         // DELETE ONLY THE SELECTED M&D RECORD
@@ -206,6 +214,8 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
+            if (!await CanDeleteRecordsAsync(new[] { record }))
+            { TempData["ErrorMessage"] = "You can delete deliverables only in teams assigned to you. No records were deleted."; return RedirectToPage(); }
             await AddDeleteAuditsAsync(new[] { record });
             _db.MDRecords.Remove(record);
             await _db.SaveChangesAsync();
@@ -258,6 +268,8 @@ namespace QMSApplication.Pages
                 return RedirectToPage();
             }
 
+            if (recordsToDelete.Count != selectedIds.Count || !await CanDeleteRecordsAsync(recordsToDelete))
+            { TempData["ErrorMessage"] = "Some selected records are missing or outside your permitted teams. No records were deleted."; return RedirectToPage(); }
             await AddDeleteAuditsAsync(recordsToDelete);
             _db.MDRecords.RemoveRange(recordsToDelete);
 
@@ -274,9 +286,23 @@ namespace QMSApplication.Pages
         {
             var username = HttpContext.Session.GetString("Username");
             if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
-            var role = await _db.PortalUsers.AsNoTracking().Where(u => u.IsActive && u.Username == username)
+            var role = await _db.PortalUsers.AsNoTracking().Where(u => u.IsActive && u.IsApproved && u.Username == username)
                 .Select(u => u.Role).FirstOrDefaultAsync();
-            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ? null : StatusCode(403);
+            if (new[] { "Admin", "Manager" }.Contains(QMSApplication.Data.TeamSetupService.Role(role))) return null;
+            TempData["ErrorMessage"] = "Only Admin and assigned Managers can delete deliverables. No records were deleted.";
+            return RedirectToPage();
+        }
+
+        private async Task<bool> CanDeleteRecordsAsync(IEnumerable<MDEntity> records)
+        {
+            var username = HttpContext.Session.GetString("Username");
+            var actor = await _db.PortalUsers.AsNoTracking().SingleOrDefaultAsync(x => x.IsActive && x.IsApproved && x.Username == username);
+            var role = QMSApplication.Data.TeamSetupService.Role(actor?.Role);
+            if (actor == null) return false;
+            if (role == "Admin") return true;
+            if (role != "Manager") return false;
+            var teams = await new QMSApplication.Security.AccessService(_db).ManagedTeams(actor).Select(x => x.Id).ToListAsync();
+            return records.All(x => x.TeamId.HasValue && teams.Contains(x.TeamId.Value));
         }
 
         private async Task AddDeleteAuditsAsync(IEnumerable<MDEntity> records)
@@ -321,12 +347,20 @@ namespace QMSApplication.Pages
         // LOAD RECORDS FROM MYSQL
         private void LoadRecords()
         {
-            var entities = _db.MDRecords
-    .AsNoTracking()
-    .OrderBy(x => x.Id)
-    .ToList();
+            var access = new QMSApplication.Security.AccessService(_db);
+            var current = access.Current(HttpContext).GetAwaiter().GetResult();
+            var entities = current == null ? new List<MDEntity>() : access.Records(current).OrderBy(x => x.Id).ToList();
 
-            var taskCounts = _db.DeliverableTasks.AsNoTracking()
+            var username = HttpContext.Session.GetString("Username");
+            var actor = current;
+            var role = QMSApplication.Data.TeamSetupService.Role(actor?.Role);
+            CanBulkUpload = actor != null && (role == "Admin" || role == "Manager");
+            CanCreateDeliverable = current != null && QMSApplication.Security.AccessService.CanCreate(current);
+            var managed = actor != null && (role == "Manager" || role == "Team Lead")
+                ? access.ManagedTeams(actor).Select(x => x.Id).ToList()
+                : new List<long>();
+            var visibleIds = entities.Select(x => x.Id).ToList();
+            var taskCounts = _db.DeliverableTasks.AsNoTracking().Where(t => visibleIds.Contains(t.DeliverableId))
                 .GroupBy(t => t.DeliverableId)
                 .Select(g => new { DeliverableId = g.Key, Count = g.Count() })
                 .ToDictionary(g => g.DeliverableId, g => g.Count);
@@ -335,6 +369,8 @@ namespace QMSApplication.Pages
             {
                 RecordID = x.RecordID,
                 DeliverableId = x.Id,
+                CanEdit = current != null && QMSApplication.Security.AccessService.CanCreate(current) && (role == "Admin" || (x.TeamId.HasValue && managed.Contains(x.TeamId.Value))),
+                CanDelete = actor != null && (role == "Admin" || (role == "Manager" && x.TeamId.HasValue && managed.Contains(x.TeamId.Value))),
                 TaskCount = taskCounts.GetValueOrDefault(x.Id),
                 DepartmentName = x.DepartmentName,
                 SNo = x.SNo,

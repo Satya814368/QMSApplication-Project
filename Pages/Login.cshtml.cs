@@ -53,19 +53,18 @@ namespace QMSApplication.Pages
 
             var user = await _db.PortalUsers
                 .FirstOrDefaultAsync(u =>
-                    u.Username == username && u.IsActive);
+                    u.Username == username && u.IsActive && u.IsApproved);
 
-            if (user == null ||
+            if (user == null || !QMSApplication.Security.AccessService.KnownRole(user) ||
                 string.IsNullOrWhiteSpace(user.PasswordHash))
             {
                 Message = "Invalid username or password.";
                 return Page();
             }
 
-            var result = _passwordHasher.VerifyHashedPassword(
-                user,
-                user.PasswordHash,
-                Password);
+            PasswordVerificationResult result;
+            try { result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, Password); }
+            catch (FormatException) { Message = "Invalid username or password. Contact Admin if you need a reset."; return Page(); }
 
             if (result == PasswordVerificationResult.Failed)
             {
@@ -87,11 +86,13 @@ namespace QMSApplication.Pages
                     StringSplitOptions.RemoveEmptyEntries)[0];
             }
 
+            HttpContext.Session.Clear();
+            HttpContext.Session.SetString("SecurityStamp", user.SecurityStamp.ToString());
             HttpContext.Session.SetString("Username", user.Username);
             HttpContext.Session.SetString("LoggedInUser", firstName);
             HttpContext.Session.SetString(
                 "UserRole",
-                string.IsNullOrWhiteSpace(user.Role) ? "User" : user.Role);
+                QMSApplication.Data.TeamSetupService.Role(user.Role));
 
             return RedirectToPage("/Welcome");
         }

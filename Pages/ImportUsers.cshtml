@@ -1,31 +1,6 @@
 ﻿@page
 @model QMSApplication.Pages.ImportUsersModel
-
-@{
-    ViewData["Title"] = "Import Users";
-    Layout = "_PortalLayout";
-}
-
-<div style="padding:30px;">
-
-    <h1>Import Users</h1>
-
-    <p>
-        This page imports users from Users.xlsx into MySQL.
-    </p>
-
-    @if (!string.IsNullOrWhiteSpace(Model.Message))
-    {
-        <div style="
-            margin-top:20px;
-            padding:15px;
-            background:#e8f5e9;
-            color:#2e7d32;
-            border-radius:5px;">
-            
-            @Model.Message
-
-        </div>
-    }
-
-</div>
+@{ ViewData["Title"]="Import users"; }
+<h1 class="h3">Import pending users</h1><p>Admin only. Headers: Username, FirstName, LastName, Email, MobileNumber. New accounts need approval and a password reset link. Up to 1,000 rows per upload.</p>
+@if(Model.Message != null){<div class="alert alert-info">@Model.Message</div>}
+<form method="post" enctype="multipart/form-data"><input asp-for="ExcelFile" type="file" accept=".xlsx" required class="form-control mb-3"/><button class="btn btn-primary">Import pending accounts</button></form><a asp-page="/ManageUsers">Manage Users &amp; Roles</a>

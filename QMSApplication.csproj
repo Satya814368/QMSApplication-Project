@@ -2,6 +2,7 @@
 
   <PropertyGroup>
 	  <TargetFramework>net8.0</TargetFramework>
+    <UserSecretsId>QMSApplication-RegistrationEmail-20261111</UserSecretsId>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

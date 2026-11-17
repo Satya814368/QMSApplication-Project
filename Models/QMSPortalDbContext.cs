@@ -21,10 +21,54 @@ namespace QMSApplication.Models
         public DbSet<DeliverableTask> DeliverableTasks { get; set; } = null!;
         public DbSet<DeliverableTarget> DeliverableTargets { get; set; } = null!;
         public DbSet<TargetProgressStep> TargetProgressSteps { get; set; } = null!;
+        public DbSet<Team> Teams { get; set; } = null!;
+        public DbSet<TeamManager> TeamManagers { get; set; } = null!;
+        public DbSet<TeamMembership> TeamMemberships { get; set; } = null!;
+        public DbSet<TeamAuditEvent> TeamAuditEvents { get; set; } = null!;
+        public DbSet<Department> Departments { get; set; } = null!;
+        public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; } = null!;
+        public DbSet<RegistrationChallenge> RegistrationChallenges { get; set; } = null!;
         protected override void OnModelCreating(
     ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<RegistrationChallenge>(b => {
+                b.Property(x => x.Id).ValueGeneratedNever();
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.HasIndex(x => new { x.Email, x.CreatedAtUtc });
+                b.HasIndex(x => new { x.OwnerHash, x.LastSentAtUtc });
+                b.HasIndex(x => x.CreatedAtUtc);
+            });
+            modelBuilder.Entity<Department>().HasIndex(x => x.NormalizedName).IsUnique();
+            modelBuilder.Entity<PortalUser>(b => {
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<Team>().HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<PasswordResetRequest>(b => {
+                b.HasIndex(x => x.TokenHash).IsUnique();
+                b.HasIndex(x => new { x.UserId, x.RequestedAtUtc });
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<Team>(b => {
+                b.HasIndex(x => x.NormalizedName).IsUnique();
+                b.HasIndex(x => x.LeadUserId).IsUnique();
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.HasOne(x => x.LeadUser).WithMany().HasForeignKey(x => x.LeadUserId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<TeamManager>(b => {
+                b.HasKey(x => new { x.TeamId, x.UserId });
+                b.HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<TeamMembership>(b => {
+                b.HasKey(x => x.UserId); b.Property(x => x.UserId).ValueGeneratedNever();
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<MDEntity>().HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<DeliverableTask>(b =>
             {

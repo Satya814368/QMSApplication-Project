@@ -3,205 +3,71 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
+using QMSApplication.Security;
 
-namespace QMSApplication.Pages
+namespace QMSApplication.Pages;
+public class ImportUsersModel : PageModel
 {
-    public class ImportUsersModel : PageModel
+    private readonly QMSPortalDbContext _db;
+    public ImportUsersModel(QMSPortalDbContext db) => _db = db;
+    [BindProperty]
+    public IFormFile? ExcelFile { get; set; }
+
+    public string? Message { get; set; }
+
+    public async Task<IActionResult> OnGetAsync() => await Allowed() ? Page() : RedirectToPage("/AccessDenied");
+    private async Task<bool> Allowed()
     {
-        private readonly QMSPortalDbContext _db;
+        var user = await new AccessService(_db).Current(HttpContext);
+        return user != null && AccessService.Role(user) == "Admin";
+    }
 
-        public ImportUsersModel(QMSPortalDbContext db)
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!await Allowed())
+            return RedirectToPage("/AccessDenied");
+        if (ExcelFile == null || ExcelFile.Length == 0 || ExcelFile.Length > 5 * 1024 * 1024 || Path.GetExtension(ExcelFile.FileName).ToLowerInvariant() != ".xlsx")
         {
-            _db = db;
+            Message = "Upload a .xlsx file up to 5 MB.";
+            return Page();
         }
 
-        public string? Message { get; set; }
-
-        private readonly string ExcelFilePath =
-            @"C:\QMSData\Users.xlsx";
-
-        public async Task<IActionResult> OnGetAsync()
+        await using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        try
         {
-            // Allow only Admin or Manager to run the import
-            var currentUserRole = HttpContext.Session.GetString("UserRole");
-
-            if (!string.Equals(currentUserRole, "Admin",
-        StringComparison.OrdinalIgnoreCase)
-    &&
-    !string.Equals(currentUserRole, "Manager",
-        StringComparison.OrdinalIgnoreCase))
-
-                if (!System.IO.File.Exists(ExcelFilePath))
+            using var stream = ExcelFile.OpenReadStream();
+            using var book = new XLWorkbook(stream);
+            var sheet = book.Worksheet(1);
+            var headers = sheet.FirstRowUsed()?.CellsUsed().ToDictionary(c => c.GetString().Trim().ToLowerInvariant(), c => c.Address.ColumnNumber) ?? new();
+            if (!headers.ContainsKey("username"))
             {
-                Message = "Users.xlsx could not be found.";
+                Message = "A Username column is required.";
                 return Page();
             }
 
-            try
+            var count = 0;
+            foreach (var row in sheet.RowsUsed().Skip(1).Take(1000))
             {
-                using var workbook =
-                    new XLWorkbook(ExcelFilePath);
-
-                var worksheet = workbook.Worksheet(1);
-
-                var firstRow = worksheet.FirstRowUsed();
-
-                if (firstRow == null)
-                {
-                    Message = "Users.xlsx is empty.";
-                    return Page();
-                }
-
-                int firstNameColumn = 0;
-                int lastNameColumn = 0;
-                int usernameColumn = 0;
-                int roleColumn = 0;
-
-                foreach (var cell in firstRow.CellsUsed())
-                {
-                    string header =
-                        cell.GetString().Trim();
-
-                    if (header.Equals(
-                        "FirstName",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        firstNameColumn =
-                            cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "LastName",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        lastNameColumn =
-                            cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "Username",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        usernameColumn =
-                            cell.Address.ColumnNumber;
-                    }
-
-                    if (header.Equals(
-                        "Role",
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        roleColumn =
-                            cell.Address.ColumnNumber;
-                    }
-                }
-
-                if (usernameColumn == 0)
-                {
-                    Message =
-                        "Username column is missing.";
-
-                    return Page();
-                }
-
-                int imported = 0;
-                int skipped = 0;
-
-                foreach (var row in worksheet.RowsUsed().Skip(1))
-                {
-                    string username =
-                        row.Cell(usernameColumn)
-                           .GetString()
-                           .Trim();
-
-                    if (string.IsNullOrWhiteSpace(username))
-                    {
-                        continue;
-                    }
-
-                    // Check whether this user already exists
-                    bool exists =
-                        await _db.PortalUsers
-                            .AnyAsync(x =>
-                                x.Username == username);
-
-                    if (exists)
-                    {
-                        skipped++;
-                        continue;
-                    }
-
-                    string firstName = "";
-
-                    if (firstNameColumn != 0)
-                    {
-                        firstName =
-                            row.Cell(firstNameColumn)
-                               .GetString()
-                               .Trim();
-                    }
-
-                    string lastName = "";
-
-                    if (lastNameColumn != 0)
-                    {
-                        lastName =
-                            row.Cell(lastNameColumn)
-                               .GetString()
-                               .Trim();
-                    }
-
-                    string fullName =
-                        $"{firstName} {lastName}".Trim();
-
-                    if (string.IsNullOrWhiteSpace(fullName))
-                    {
-                        fullName = username;
-                    }
-
-                    string role = "User";
-
-                    if (roleColumn != 0)
-                    {
-                        string excelRole =
-                            row.Cell(roleColumn)
-                               .GetString()
-                               .Trim();
-
-                        if (!string.IsNullOrWhiteSpace(excelRole))
-                        {
-                            role = excelRole;
-                        }
-                    }
-
-                    var user = new PortalUser
-                    {
-                        Username = username,
-                        FullName = fullName,
-                        Role = role,
-                        IsActive = true
-                    };
-
-                    _db.PortalUsers.Add(user);
-
-                    imported++;
-                }
-
-                await _db.SaveChangesAsync();
-
-                Message =
-                    $"Import completed. " +
-                    $"Imported: {imported}. " +
-                    $"Skipped existing users: {skipped}.";
-
-                return Page();
+                string Cell(string n) => headers.TryGetValue(n, out var col) ? row.Cell(col).GetString().Trim() : "";
+                var name = Cell("username");
+                if (name.Length is < 3 or > 100 || await _db.PortalUsers.AnyAsync(x => x.Username == name) || _db.PortalUsers.Local.Any(x => x.Username == name))
+                    continue;
+                var full = (Cell("firstname") + " " + Cell("lastname")).Trim();
+                _db.PortalUsers.Add(new PortalUser { Username = name, FullName = full.Length == 0 ? name : full[..Math.Min(200, full.Length)], Role = "User", IsActive = false, IsApproved = false, Email = Cell("email")[..Math.Min(200, Cell("email").Length)], MobileNumber = Cell("mobilenumber")[..Math.Min(20, Cell("mobilenumber").Length)] });
+                count++;
             }
-            catch
-            {
-                Message =
-                    "Unable to import users from Users.xlsx.";
 
-                return Page();
-            }
+            _db.TeamAuditEvents.Add(new TeamAuditEvent { TimestampUtc = DateTime.UtcNow, Username = HttpContext.Session.GetString("Username")!, Action = "Pending users imported", DetailsJson = System.Text.Json.JsonSerializer.Serialize(new { Count = count }) });
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+            Message = $"{count} pending accounts imported. Approve roles in Manage Users, then issue reset links to set passwords. Excel roles/passwords are not imported.";
         }
+        catch (Exception)
+        {
+            await tx.RollbackAsync();
+            Message = "Import failed. No accounts were saved. Check headers and data.";
+        }
+
+        return Page();
     }
 }

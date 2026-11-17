@@ -29,7 +29,7 @@ public static class LanguageTaskFactory
         if (rows == null || rows.Count is < 1 or > 40 || rows.Any(x => x == null))
             return (new(), "Add between 1 and 40 language tasks.");
 
-        var activeIds = await db.PortalUsers.AsNoTracking().Where(x => x.IsActive)
+        var activeIds = await db.PortalUsers.AsNoTracking().Where(x => x.IsActive && x.IsApproved)
             .Select(x => x.Id).ToListAsync();
         var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tasks = new List<DeliverableTask>();

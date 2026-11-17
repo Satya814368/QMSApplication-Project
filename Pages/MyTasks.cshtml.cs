@@ -30,44 +30,21 @@ public class MyTasksModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var username = HttpContext.Session.GetString("Username");
-        if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
-        var actor = await _db.PortalUsers.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Username == username && x.IsActive);
-        if (actor == null) return StatusCode(403);
-
-        // A deliverable-level assignment is distinct from an individual target assignment.
-        // Only show targets owned by this user unless the whole deliverable was assigned to them.
-        var records = await _db.MDRecords.AsNoTracking()
-            .Where(x => x.AssignedTo == username ||
-                _db.DeliverableTasks.Any(t => t.DeliverableId == x.Id &&
-                    (t.AssignedUserId == actor.Id || t.Targets.Any(y => y.AssignedUserId == actor.Id))))
-            .OrderByDescending(x => x.CreatedAtUtc).ToListAsync();
-        var recordIds = records.Select(x => x.Id).ToList();
-        var tasks = await _db.DeliverableTasks.AsNoTracking()
-            .Where(t => recordIds.Contains(t.DeliverableId))
-            .Include(t => t.Targets).ThenInclude(t => t.Steps)
-            .AsSplitQuery().ToListAsync();
-
+        var access = new QMSApplication.Security.AccessService(_db);
+        var actor = await access.Current(HttpContext);
+        if (actor == null) return RedirectToPage("/Login");
+        var records = await access.Records(actor).OrderByDescending(x => x.CreatedAtUtc).ToListAsync();
+        var ids = records.Select(x => x.Id).ToList();
+        var targets = await access.Targets(actor).AsNoTracking().Where(x => ids.Contains(x.Task.DeliverableId))
+            .Include(x => x.Task).Include(x => x.Steps).AsSplitQuery().ToListAsync();
         foreach (var record in records)
         {
-            var directlyAssigned = string.Equals(record.AssignedTo, username, StringComparison.OrdinalIgnoreCase);
-            var relevant = tasks.Where(t => t.DeliverableId == record.Id &&
-                (directlyAssigned || t.AssignedUserId == actor.Id || t.Targets.Any(y => y.AssignedUserId == actor.Id))).ToList();
-            var item = new AssignedDeliverable { Record = record, DirectlyAssigned = directlyAssigned };
-            foreach (var task in relevant)
-            {
-                item.Languages.Add(task.Language);
-                foreach (var target in task.Targets.Where(y => directlyAssigned || y.AssignedUserId == actor.Id))
-                    item.Targets.Add(new AssignedTarget
-                    {
-                        Language = task.Language,
-                        Number = target.TargetNumber,
-                        CompletedSteps = target.Steps.Count(s => s.Status == "Completed"),
-                        Cancelled = target.IsCancelled
-                    });
-            }
-            Deliverables.Add(item);
+            var relevant = targets.Where(x => x.Task.DeliverableId == record.Id).ToList();
+            Deliverables.Add(new AssignedDeliverable { Record = record,
+                DirectlyAssigned = record.AssignedTo == actor.Username || record.AssignedTo == actor.FullName,
+                Languages = relevant.Select(x => x.Task.Language).Distinct().ToList(),
+                Targets = relevant.Select(x => new AssignedTarget { Language = x.Task.Language, Number = x.TargetNumber,
+                    CompletedSteps = x.Steps.Count(s => s.Status == "Completed"), Cancelled = x.IsCancelled }).ToList() });
         }
         return Page();
     }

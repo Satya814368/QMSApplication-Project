@@ -1,0 +1,26 @@
+@page
+@model QMSApplication.Pages.VerifyRegistrationModel
+@{ ViewData["Title"] = Model.IsDemo ? "Demo OTP" : "Verify your email"; }
+<div class="card p-4 mx-auto" style="max-width:640px">
+<h1 class="h3">@(Model.IsDemo ? "Demo OTP verification" : "Verify your email")</h1>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Message != null) { <div class="alert alert-success" role="status">@Model.Message</div> }
+@if (Model.Pending != null)
+{
+    @if (Model.IsDemo)
+    { <div class="alert alert-warning">Demo only. No email was sent. Enter this code: <strong>123456</strong>. This does not verify ownership of your email address.</div> }
+    else { <p>We sent a six-digit code to <strong>@Model.Pending.MaskedEmail</strong>. Enter it below to submit your registration.</p> }
+    <p class="text-muted">Each code expires after 5 minutes. @Model.Pending.AttemptsRemaining attempts remaining.</p>
+    @if (Model.Pending.Expired) { <div class="alert alert-warning">Your code has expired. <a asp-page="/register">Return to registration</a> to begin again.</div> }
+    <form method="post" class="mb-3">
+        <label asp-for="Code" class="form-label">Verification code</label>
+        <input name="Code" id="Code" class="form-control mb-3" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required autofocus />
+        <button class="btn btn-primary">Verify &amp; submit registration</button>
+    </form>
+}
+else
+{
+    <p>No active verification is available in this browser. The code may have been used, locked, or the session may have expired. <a asp-page="/register">Return to registration</a> to begin again.</p>
+}
+<a asp-page="/Login" class="mt-3">Back to sign in</a>
+</div>

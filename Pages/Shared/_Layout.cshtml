@@ -6,7 +6,7 @@
     var displayName = Context.Session.GetString("LoggedInUser");
     if (string.IsNullOrWhiteSpace(displayName)) displayName = username ?? "User";
     var role = Context.Session.GetString("UserRole") ?? "User";
-    var authPage = new[] { "login", "register", "forgotpassword" }.Contains(key);
+    var authPage = new[] { "login", "register", "forgotpassword", "verifyregistration", "resetpassword" }.Contains(key);
     var signedIn = !string.IsNullOrWhiteSpace(username) && !authPage;
     var title = ViewData["Title"]?.ToString() ?? key switch
     {
@@ -23,7 +23,8 @@
         (Title: "M & D", Page: "/md", Module: "", Key: "records", Icon: "records"),
         (Title: "Reports", Page: "/comingsoon", Module: "Reports", Key: "reports", Icon: "chart"),
         (Title: "My Tasks", Page: "/MyTasks", Module: "", Key: "mytasks", Icon: "tasks"),
-        (Title: "My Team", Page: "/comingsoon", Module: "MyTeam", Key: "myteam", Icon: "team"),
+        (Title: "My Team", Page: "/MyTeam", Module: "", Key: "myteam", Icon: "team"),
+        (Title: "Manage Users", Page: "/ManageUsers", Module: "", Key: "manageusers", Icon: "team"),
         (Title: "Time Sheets", Page: "/comingsoon", Module: "TimeSheets", Key: "timesheets", Icon: "clock"),
         (Title: "Guidelines", Page: "/Guidelines", Module: "", Key: "guidelines", Icon: "book"),
         (Title: "Settings", Page: "/comingsoon", Module: "Settings", Key: "settings", Icon: "settings")
@@ -57,6 +58,8 @@
                 <p class="qms-nav-label">Workspace</p>
                 @foreach (var item in pages)
                 {
+                    if (item.Key == "myteam" && !new[] { "Admin", "Manager", "Team Lead" }.Contains(QMSApplication.Data.TeamSetupService.Role(role))) { continue; }
+                    if (item.Key == "manageusers" && QMSApplication.Data.TeamSetupService.Role(role) != "Admin") { continue; }
                     var url = string.IsNullOrEmpty(item.Module) ? Url.Page(item.Page) : Url.Page(item.Page, new { module = item.Module });
                     <a href="@url" class="qms-nav-link @(section == item.Key ? "is-active" : "")" aria-current="@(section == item.Key ? "page" : null)">
                         <partial name="_NavIcon" model="item.Icon" /><span>@item.Title</span>

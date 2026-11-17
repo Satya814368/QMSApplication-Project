@@ -1,0 +1,40 @@
+@page
+@model QMSApplication.Pages.ManageUsersModel
+@using QMSApplication.Security
+@{ViewData["Title"]="Manage Users & Roles";}
+<h1 class="h3">Manage Users &amp; Roles</h1><p>Admin only. Approve registrations, assign roles, activate/deactivate accounts and issue password reset links. For employees who leave, uncheck Active, provide a reason and Save account to block access while preserving their work. Permanently delete only unused accounts. The last active Admin is protected.</p>
+@if(TempData["AccountSuccess"] is string success){<div class="alert alert-success">@success</div>}
+<div asp-validation-summary="All" class="text-danger"></div>
+@if(Model.ResetLink!=null){<div class="alert alert-warning" role="status"><strong>Reset link — shown once, expires in 15 minutes:</strong><code class="d-block" style="overflow-wrap:anywhere">@Model.ResetLink</code><p>After verifying the person's identity, send this path with your official application address through your approved company channel. Anyone holding the link can reset that account. No email/SMS is sent automatically.</p></div>}
+<div class="card p-3 mb-3"><h2 class="h5">Departments</h2><p>Delete a department only after removing its user and team assignments.</p>
+@foreach (var department in Model.Departments)
+{
+    <details class="border rounded p-2 mb-2"><summary>@department.Name — Delete department</summary>
+    <form method="post" asp-page-handler="DeleteDepartment" class="row g-2 mt-1" onsubmit="return confirm('Permanently delete this department?');">
+        <input type="hidden" name="departmentId" value="@department.Id" />
+        <div class="col-md-5"><label for="delete-department-@department.Id" class="form-label">Type department name: @department.Name</label><input id="delete-department-@department.Id" name="confirmation" class="form-control" required maxlength="120" autocomplete="off" /></div>
+        <div class="col-md-5"><label for="department-reason-@department.Id" class="form-label">Deletion reason</label><input id="department-reason-@department.Id" name="reason" class="form-control" required maxlength="500" /></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-danger">Delete department</button></div>
+    </form></details>
+}<form method="post" asp-page-handler="Department" class="d-flex gap-2"><input name="name" class="form-control" maxlength="120" required aria-label="New department name"/><button class="btn btn-primary">Add department</button></form><p>Assign teams to departments in My Team. Managers use assigned-team scope unless you explicitly enable department-wide scope below.</p></div>
+<form method="get" class="d-flex flex-wrap gap-2 mb-3"><input asp-for="Search" class="form-control" style="max-width:320px" placeholder="Username or name"/><label><input asp-for="PendingOnly"/> Pending only</label><button class="btn btn-primary">Search</button><a asp-page="/ImportUsers" class="btn btn-outline-primary">Import pending users</a></form>
+<p>@Model.Total accounts · Page @Model.PageNumber / @Model.Pages</p>
+@foreach(var user in Model.Users){<section class="card p-3 mb-3"><h2 class="h5">@user.FullName <small>(@user.Username)</small></h2>
+<form method="post" asp-page-handler="Save"><input type="hidden" name="userId" value="@user.Id"/><input type="hidden" name="version" value="@user.Version"/><div class="row g-3">
+<div class="col-md-3"><label for="role-@user.Id">Role</label><select id="role-@user.Id" name="role" class="form-select">@foreach(var role in AccountService.Roles){<option selected="@(role==AccessService.Role(user))">@role</option>}</select></div>
+<div class="col-md-3"><label for="dept-@user.Id">Department</label><select id="dept-@user.Id" name="departmentId" class="form-select"><option value="">None</option>@foreach(var department in Model.Departments){<option value="@department.Id" selected="@(department.Id==user.DepartmentId)">@department.Name</option>}</select></div>
+<div class="col-md-6"><label class="me-3"><input type="checkbox" name="approved" value="true" checked="@user.IsApproved"/> Approved</label><label><input type="checkbox" name="active" value="true" checked="@user.IsActive"/> Active</label><label class="d-block"><input type="checkbox" name="departmentScope" value="true" checked="@user.ManagerDepartmentScope"/> Manager: department-wide scope</label></div>
+<div class="col-md-9"><input name="reason" required maxlength="500" placeholder="Reason for approval / role or account change" class="form-control" aria-label="Change reason for @user.Username"/></div><div class="col-md-3"><button class="btn btn-primary">Save account</button></div></div></form>
+@if(user.IsApproved&&user.IsActive){<form method="post" asp-page-handler="Reset" class="mt-2"><input type="hidden" name="userId" value="@user.Id"/><button class="btn btn-outline-secondary">Create password reset link</button></form>}
+<details class="border rounded p-2 mt-3"><summary class="text-danger">Delete user</summary>
+    <p class="mt-2 mb-2">Permanent deletion is available only for accounts without team links, assigned work or recorded history. For a former employee with history, use Active → unchecked → Save account above.</p>
+    <form method="post" asp-page-handler="DeleteUser" class="row g-2" onsubmit="return confirm('Permanently delete this unused user account?');">
+        <input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="version" value="@user.Version" />
+        <div class="col-md-5"><label for="delete-user-@user.Id" class="form-label">Type username: @user.Username</label><input id="delete-user-@user.Id" name="confirmation" class="form-control" required maxlength="100" autocomplete="off" /></div>
+        <div class="col-md-5"><label for="user-delete-reason-@user.Id" class="form-label">Deletion reason</label><input id="user-delete-reason-@user.Id" name="reason" class="form-control" required maxlength="500" /></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-danger">Delete user</button></div>
+    </form></details>
+</section>}
+<div class="d-flex gap-2 mb-4">@if(Model.PageNumber>1){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a>}@if(Model.PageNumber<Model.Pages){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a>}</div>
+<details class="card p-3 mb-3"><summary>Pending password help requests</summary>@foreach(var request in Model.Requests){<form method="post" asp-page-handler="Reset" class="my-2"><input type="hidden" name="userId" value="@request.UserId"/><span>@request.User.Username · @request.RequestedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span><button class="btn btn-sm btn-outline-primary ms-2">Verify identity, then issue link</button></form>}</details>
+<details class="card p-3"><summary>Latest 50 account / department audit events (UTC)</summary>@foreach(var audit in Model.Audit){<p class="mt-2">@audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm") · @audit.Username · @audit.Action</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">@audit.DetailsJson</pre>}</details>

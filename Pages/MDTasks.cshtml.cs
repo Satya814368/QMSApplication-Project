@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -16,10 +16,11 @@ public class MDTasksModel : PageModel
     public MDEntity Deliverable { get; set; } = null!;
     public List<DeliverableTask> Tasks { get; set; } = new();
     public List<PortalUser> ActiveUsers { get; set; } = new();
-    public bool CanManage => _actor != null && (TaskWorkflow.CanManage(_actor.Role)
-        || string.Equals(Deliverable?.CreatedBy, _actor.Username, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(Deliverable?.AssignedTo, _actor.Username, StringComparison.OrdinalIgnoreCase));
-    public bool CanUpdate(DeliverableTarget target) => CanManage || target.AssignedUserId == _actor?.Id;
+    public bool IsGuest => _actor != null && TeamSetupService.Role(_actor.Role) == "Guest";
+    private Dictionary<long, string> _memberNames = new();
+    private bool _canManage;
+    public bool CanManage => _canManage;
+    public bool CanUpdate(DeliverableTarget target) => !IsGuest && (CanManage || target.AssignedUserId == _actor?.Id);
     [BindProperty] public string? TasksJson { get; set; } = "[]";
     [BindProperty] public List<long> SelectedTargets { get; set; } = new();
     [BindProperty] public Dictionary<long, Guid> Versions { get; set; } = new();
@@ -34,40 +35,38 @@ public class MDTasksModel : PageModel
 
     private async Task<IActionResult?> LoadAsync(long id)
     {
-        var username = HttpContext.Session.GetString("Username");
-        if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
-        _actor = await _db.PortalUsers.AsNoTracking().Where(x => x.Username == username && x.IsActive)
-            .Select(x => new PortalUser { Id = x.Id, Username = x.Username, Role = x.Role }).FirstOrDefaultAsync();
-        if (_actor == null) return StatusCode(403);
-        var deliverable = await _db.MDRecords.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-        if (deliverable == null) return NotFound();
-        // Direct URL access must not expose another user's assigned tasks.
-        var hasAssignment = string.Equals(deliverable.AssignedTo, _actor.Username, StringComparison.OrdinalIgnoreCase)
-            || await _db.DeliverableTasks.AnyAsync(t => t.DeliverableId == id &&
-                (t.AssignedUserId == _actor.Id || t.Targets.Any(x => x.AssignedUserId == _actor.Id)));
-        if (!TaskWorkflow.CanManage(_actor.Role) && !hasAssignment &&
-            !string.Equals(deliverable.CreatedBy, _actor.Username, StringComparison.OrdinalIgnoreCase))
-            return StatusCode(403);
+        var access = new QMSApplication.Security.AccessService(_db);
+        _actor = await access.Current(HttpContext);
+        if (_actor == null) return RedirectToPage("/Login");
+        var deliverable = await access.Records(_actor).FirstOrDefaultAsync(x => x.Id == id);
+        if (deliverable == null) return RedirectToPage("/AccessDenied");
         Deliverable = deliverable;
-        ActiveUsers = await _db.PortalUsers.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.FullName)
-            .Select(x => new PortalUser { Id = x.Id, Username = x.Username, FullName = x.FullName }).ToListAsync();
+        _canManage = await access.Manage(_actor, deliverable);
+        ActiveUsers = deliverable.TeamId.HasValue && CanManage ? await access.Assignees(deliverable.TeamId.Value).OrderBy(x => x.FullName).ToListAsync() : new();
+        var allowedTargetIds = access.Targets(_actor).Select(x => x.Id);
         Tasks = await _db.DeliverableTasks.AsNoTracking().Where(x => x.DeliverableId == id)
-            .Include(x => x.Targets).ThenInclude(x => x.Steps)
+            .Include(x => x.Targets.Where(t => allowedTargetIds.Contains(t.Id))).ThenInclude(x => x.Steps)
             .OrderBy(x => x.Language).AsSplitQuery().ToListAsync();
+        if (QMSApplication.Security.AccessService.Role(_actor) == "User") Tasks = Tasks.Where(x => x.Targets.Count > 0).ToList();
+        var visibleMembers = Tasks.SelectMany(x => x.Targets).Select(x => x.AssignedUserId).Concat(Tasks.Select(x => x.AssignedUserId)).Distinct().ToList();
+        _memberNames = await _db.PortalUsers.AsNoTracking().Where(x => visibleMembers.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.FullName);
         return null;
     }
-    public string MemberName(long id) => ActiveUsers.FirstOrDefault(x => x.Id == id)?.FullName ?? $"Inactive member #{id}";
+    public string MemberName(long id) => _memberNames.GetValueOrDefault(id, $"Unavailable member #{id}");
     public async Task<IActionResult> OnGetAsync(long id) => await LoadAsync(id) ?? Page();
 
     public async Task<IActionResult> OnPostAddAsync(long id)
     {
         var denied = await LoadAsync(id); if (denied != null) return denied;
+        if (TeamSetupService.Role(_actor?.Role) == "Guest") return StatusCode(403);
         if (!CanManage) return StatusCode(403);
         if (!ModelState.IsValid) return Page();
         var result = await LanguageTaskFactory.BuildAsync(_db, TasksJson, _actor!.Username);
         if (result.Error != null) { ModelState.AddModelError("", result.Error); return Page(); }
         if (Tasks.Count + result.Tasks.Count > 40 || Tasks.Sum(t => t.Targets.Count) + result.Tasks.Sum(t => t.Targets.Count) > 400)
         { ModelState.AddModelError("", "A deliverable supports up to 40 language tasks and 400 targets."); return Page(); }
+        if (!Deliverable.TeamId.HasValue || !await new QMSApplication.Security.AccessService(_db).ValidAssignments(Deliverable.TeamId.Value, Deliverable.AssignedTo ?? "", result.Tasks))
+        { ModelState.AddModelError("", "Choose approved members of the owning team for every task and target."); return Page(); }
         if (result.Tasks.Any(t => Tasks.Any(x => x.Language.Equals(t.Language, StringComparison.OrdinalIgnoreCase))))
         { ModelState.AddModelError("", "That language already exists. Add only new language tasks."); return Page(); }
         await using var transaction = await _db.Database.BeginTransactionAsync();
@@ -91,6 +90,7 @@ public class MDTasksModel : PageModel
     public async Task<IActionResult> OnPostUpdateAsync(long id)
     {
         var denied = await LoadAsync(id); if (denied != null) return denied;
+        if (TeamSetupService.Role(_actor?.Role) == "Guest") return StatusCode(403);
         if (!ModelState.IsValid) return Page();
         var ids = SelectedTargets.Distinct().OrderBy(x => x).ToList();
         if (ids.Count is < 1 or > 400) { ModelState.AddModelError("", "Select 1–400 targets."); return Page(); }

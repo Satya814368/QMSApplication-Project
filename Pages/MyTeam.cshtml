@@ -1,0 +1,79 @@
+@page
+@model QMSApplication.Pages.MyTeamModel
+@using QMSApplication.Data
+@{ ViewData["Title"] = "My Team"; }
+<h1 class="h3">My Team</h1>
+<p>Team setup, membership and deliverable ownership.</p>
+@if (TempData["TeamSuccess"] is string message) { <div class="alert alert-success" role="status">@message</div> }
+<div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+<div class="alert alert-info">This page displays the teams assigned to your account, including each team's Manager, Team Lead and members.</div>
+@if (Model.CanSetLeadership)
+{
+    <section class="card p-3 mb-4"><h2 class="h5">Create team</h2><form method="post" asp-page-handler="Create" class="d-flex flex-wrap gap-2"><label for="team-name" class="visually-hidden">Team name</label><input id="team-name" name="teamName" class="form-control" style="max-width:350px" required maxlength="120" placeholder="For example: Documentation Team A" />@if (Model.IsAdmin) { <select name="departmentId" class="form-select" style="max-width:250px" aria-label="Department"><option value="">No department</option>@foreach (var department in Model.Departments) { <option value="@department.Id">@department.Name</option> }</select> }<button class="btn btn-primary">Create team</button></form><p class="text-muted mt-2 mb-0">Select existing Manager and Team Lead accounts below. This page does not change account roles.</p></section>
+}
+@if (Model.Teams.Count == 0) { <p class="alert alert-warning">No teams are assigned to your account yet. Admin must create teams and assign their Managers / Team Leads.</p> }
+@foreach (var team in Model.Teams)
+{
+    <section class="card p-3 mb-3"><h2 class="h5">@team.Name</h2><p><strong>Team Lead:</strong> @(team.LeadUserId.HasValue ? Model.UserName(team.LeadUserId.Value) : "Not assigned") · <strong>Members:</strong> @Model.Memberships.Count(x => x.Value == team.Id)</p>
+        <p><strong>Managers:</strong> @string.Join(", ", Model.Managers.Where(x => x.TeamId == team.Id).Select(x => Model.UserName(x.UserId)))</p>
+        <div class="mb-3"><strong>Team Members:</strong>
+            @if (Model.TeamMembers.TryGetValue(team.Id, out var teamMembers) && teamMembers.Count > 0)
+            {
+                <ul class="mb-0 mt-1">
+                    @foreach (var member in teamMembers)
+                    {
+                        <li>@member.FullName <small class="text-muted">(@member.Username)</small></li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <span class="text-muted">No members assigned.</span>
+            }
+        </div>
+        @if (Model.CanSetLeadership)
+        {
+            <form method="post" asp-page-handler="Lead" class="d-flex flex-wrap gap-2 mb-3">
+                <input type="hidden" name="teamId" value="@team.Id" /><input type="hidden" name="version" value="@team.Version" />
+                <label for="lead-@team.Id" class="form-label">Team Lead</label>
+                <select name="leadId" id="lead-@team.Id" class="form-select" style="max-width:350px"><option value="">No lead</option>
+                @foreach (var user in Model.Users.Where(x => TeamSetupService.Role(x.Role) == "Team Lead")) { <option value="@user.Id" selected="@(team.LeadUserId == user.Id)">@user.FullName (@user.Username)</option> }
+                </select><button class="btn btn-primary">Save lead</button>
+            </form>
+        }
+        @if (Model.IsAdmin)
+        {
+            <form method="post" asp-page-handler="Department" class="d-flex flex-wrap gap-2 mb-3"><input type="hidden" name="teamId" value="@team.Id" /><input type="hidden" name="version" value="@team.Version" /><label for="dept-@team.Id">Department</label><select name="departmentId" id="dept-@team.Id" class="form-select" style="max-width:350px"><option value="">No department</option>@foreach (var department in Model.Departments) { <option value="@department.Id" selected="@(team.DepartmentId == department.Id)">@department.Name</option> }</select><button class="btn btn-outline-primary">Save department</button></form>
+            <form method="post" asp-page-handler="Manager" class="d-flex flex-wrap gap-2"><input type="hidden" name="teamId" value="@team.Id" /><input type="hidden" name="version" value="@team.Version" /><label for="manager-@team.Id">Add Manager</label><select name="managerId" id="manager-@team.Id" class="form-select" style="max-width:350px" required><option value="">Select Manager</option>@foreach (var user in Model.Users.Where(x => TeamSetupService.Role(x.Role) == "Manager")) { <option value="@user.Id">@user.FullName (@user.Username)</option> }</select><button class="btn btn-primary">Assign Manager</button></form>
+            @foreach (var manager in Model.Managers.Where(x => x.TeamId == team.Id))
+            { <form method="post" asp-page-handler="Manager" class="mt-2"><input type="hidden" name="teamId" value="@team.Id" /><input type="hidden" name="managerId" value="@manager.UserId" /><input type="hidden" name="remove" value="true" /><input type="hidden" name="version" value="@team.Version" /><button class="btn btn-sm btn-outline-danger">Remove Manager: @Model.UserName(manager.UserId)</button></form> }
+        }
+    </section>
+}
+@if (Model.Teams.Count > 0)
+{
+    <section class="card p-3 mb-4"><h2 class="h5">Assign / transfer members</h2><p>Only active User accounts appear here. You can add unassigned members or transfer members into a team you manage / lead. Transfers do not change existing task assignments or deliverable ownership.</p>
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Current team</th><th>Assign / transfer</th></tr></thead><tbody>
+        @foreach (var user in Model.Users.Where(x => TeamSetupService.Role(x.Role) == "User"))
+        {
+            long? source = Model.Memberships.TryGetValue(user.Id, out var sourceId) ? sourceId : null;
+            <tr><td>@user.FullName <small class="d-block">@user.Username</small></td><td>@(source.HasValue ? Model.TeamNames.GetValueOrDefault(source.Value, "Unavailable") : "Unassigned")</td><td>
+                <form method="post" asp-page-handler="Member" class="d-flex flex-wrap gap-2"><input type="hidden" name="memberId" value="@user.Id" /><input type="hidden" name="expectedSourceId" value="@source" /><select name="destinationId" class="form-select" style="max-width:260px" aria-label="Destination team for @user.FullName" required><option value="">Select destination</option>@foreach (var team in Model.Teams.Where(x => x.Id != source)) { <option value="@team.Id">@team.Name</option> }</select><input name="reason" class="form-control" style="max-width:280px" maxlength="500" placeholder="Reason (required for transfer)" aria-label="Transfer reason for @user.FullName" /><button class="btn btn-outline-primary">Assign / Transfer</button></form>
+                @if (source.HasValue && Model.Owns(source.Value))
+                { <form method="post" asp-page-handler="Remove" class="d-flex flex-wrap gap-2 mt-2"><input type="hidden" name="memberId" value="@user.Id" /><input type="hidden" name="expectedTeamId" value="@source" /><input name="reason" class="form-control" style="max-width:280px" required maxlength="500" placeholder="Reason for unassigning" aria-label="Removal reason for @user.FullName" /><button class="btn btn-outline-danger">Unassign member</button></form> }
+            </td></tr>
+        }
+        </tbody></table></div>
+    </section>
+}
+@if (Model.IsAdmin)
+{
+    <section class="card p-3 mb-4"><h2 class="h5">Map deliverables to owning teams</h2><p>New deliverables require an owning team. Map older, unassigned deliverables here. Only Admin can change ownership. Managers cannot delete unassigned deliverables.</p>
+        <form method="get" class="d-flex flex-wrap gap-2 mb-3"><label for="team-record-search" class="visually-hidden">Search deliverables</label><input asp-for="Search" id="team-record-search" class="form-control" style="max-width:350px" maxlength="100" placeholder="Record ID or deliverable name" /><label class="d-flex align-items-center gap-2"><input asp-for="OnlyUnassigned" /> Only unassigned</label><button class="btn btn-primary">Search</button></form>
+        <p>@Model.RecordCount deliverables · Page @Model.PageNumber / @Model.PageCount</p>
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Record / deliverable</th><th>Owning team</th></tr></thead><tbody>@foreach (var record in Model.Records)
+        { <tr><td>@record.RecordID — @record.DeliverableName</td><td><form method="post" asp-page-handler="Map" class="d-flex gap-2"><input type="hidden" name="recordId" value="@record.Id" /><input type="hidden" name="version" value="@record.ConcurrencyToken" /><select name="teamId" class="form-select" aria-label="Owning team for @record.RecordID"><option value="">Unassigned</option>@foreach (var team in Model.Teams) { <option value="@team.Id" selected="@(record.TeamId == team.Id)">@team.Name</option> }</select><button class="btn btn-primary">Save ownership</button></form></td></tr> }
+        </tbody></table></div><div class="d-flex gap-2">@if (Model.PageNumber > 1) { <a asp-page="/MyTeam" asp-route-Search="@Model.Search" asp-route-OnlyUnassigned="@Model.OnlyUnassigned" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a> }@if (Model.PageNumber < Model.PageCount) { <a asp-page="/MyTeam" asp-route-Search="@Model.Search" asp-route-OnlyUnassigned="@Model.OnlyUnassigned" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a> }</div>
+    </section>
+    <details class="card p-3"><summary>Latest 50 team changes (UTC)</summary><div class="table-responsive"><table class="table"><thead><tr><th>When</th><th>Who</th><th>Action / details</th></tr></thead><tbody>@foreach (var audit in Model.Audits) { <tr><td>@audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@audit.Username</td><td>@audit.Action<pre style="white-space:pre-wrap;overflow-wrap:anywhere">@audit.DetailsJson</pre></td></tr> }</tbody></table></div></details>
+}

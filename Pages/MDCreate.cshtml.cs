@@ -12,13 +12,16 @@ public class MDCreateModel : PageModel
 {
     private readonly QMSPortalDbContext _db;
     public MDCreateModel(QMSPortalDbContext db) => _db = db;
-    [BindProperty] public InputModel Input { get; set; } = new();
+    [BindProperty(SupportsGet = true)] public InputModel Input { get; set; } = new();
     [BindProperty] public string? TasksJson { get; set; } = "[]";
     public bool ShowTasks { get; set; }
+    private PortalUser? _actor;
+    public List<Team> AvailableTeams { get; set; } = new();
     public List<PortalUser> ActiveUsers { get; set; } = new();
 
     public class InputModel
     {
+        [Required] public long? TeamId { get; set; }
         [Required, StringLength(200)] public string MilestoneName { get; set; } = "";
         [Required, StringLength(50)] public string DepartmentName { get; set; } = "";
         [Required, StringLength(200)] public string DeliverableName { get; set; } = "";
@@ -31,19 +34,20 @@ public class MDCreateModel : PageModel
 
     private async Task<IActionResult?> AccessCheckAsync()
     {
-        if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Username")))
-            return RedirectToPage("/Login");
-        var username = HttpContext.Session.GetString("Username");
-        var actor = await _db.PortalUsers.AsNoTracking().Where(x => x.Username == username && x.IsActive)
-            .Select(x => new { x.Role }).FirstOrDefaultAsync();
-        return actor == null || string.Equals(actor.Role, "Guest", StringComparison.OrdinalIgnoreCase) ? StatusCode(403) : null;
+        _actor = await new QMSApplication.Security.AccessService(_db).Current(HttpContext);
+        return _actor == null ? RedirectToPage("/Login") : !QMSApplication.Security.AccessService.CanCreate(_actor) ? RedirectToPage("/AccessDenied") : null;
     }
-    private async Task LoadUsersAsync() => ActiveUsers = await _db.PortalUsers.AsNoTracking()
-        .Where(x => x.IsActive).OrderBy(x => x.FullName)
-        .Select(x => new PortalUser { Id = x.Id, Username = x.Username, FullName = x.FullName }).ToListAsync();
+    private async Task LoadUsersAsync()
+    {
+        var access = new QMSApplication.Security.AccessService(_db);
+        AvailableTeams = await access.ManagedTeams(_actor!).OrderBy(x => x.Name).ToListAsync();
+        if (!Input.TeamId.HasValue && AvailableTeams.Count == 1) Input.TeamId = AvailableTeams[0].Id;
+        ActiveUsers = Input.TeamId.HasValue && AvailableTeams.Any(x => x.Id == Input.TeamId) ? await access.Assignees(Input.TeamId.Value).OrderBy(x => x.FullName).ToListAsync() : new();
+    }
 
     private void ValidateDetails()
     {
+        if (!AvailableTeams.Any(x => x.Id == Input.TeamId)) ModelState.AddModelError("Input.TeamId", "Choose a team you manage or lead.");
         if (!Input.MilestoneTargetDate.HasValue)
             ModelState.AddModelError("Input.MilestoneTargetDate", "Milestone Target Date is required.");
         if (!Input.DeliverableTargetDate.HasValue)
@@ -61,7 +65,7 @@ public class MDCreateModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         var denied = await AccessCheckAsync(); if (denied != null) return denied;
-        await LoadUsersAsync(); return Page();
+        await LoadUsersAsync(); ModelState.Clear(); return Page();
     }
 
     public async Task<IActionResult> OnPostNextAsync()
@@ -88,6 +92,8 @@ public class MDCreateModel : PageModel
         var result = await LanguageTaskFactory.BuildAsync(_db, TasksJson, username);
         if (result.Error != null) { ModelState.AddModelError("", result.Error); return Page(); }
 
+        if (!Input.TeamId.HasValue || !await new QMSApplication.Security.AccessService(_db).ValidAssignments(Input.TeamId.Value, Input.AssignedTo, result.Tasks))
+        { ModelState.AddModelError("", "All assignments must be active, approved members of the selected team."); return Page(); }
         // Serializable creation protects the legacy max+1 record-code allocator here.
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
@@ -99,6 +105,7 @@ public class MDCreateModel : PageModel
             var nextSNo = sns.Select(s => int.TryParse(s, out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
             var entity = new MDEntity
             {
+                TeamId = Input.TeamId,
                 RecordID = $"MD-{maxNumber + 1:D4}", SNo = nextSNo.ToString(),
                 DepartmentName = Input.DepartmentName.Trim(), MilestoneName = Input.MilestoneName.Trim(),
                 DeliverableName = Input.DeliverableName.Trim(), DeliverableType = Input.DeliverableType,

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
@@ -18,23 +18,19 @@ namespace QMSApplication.Pages
         public long DeliverableId { get; set; }
 
 
-        public void OnGet(string? id)
+        public IActionResult OnGet(string? id)
         {
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                return;
-            }
+            var access = new QMSApplication.Security.AccessService(_db);
+            var actor = access.Current(HttpContext).GetAwaiter().GetResult();
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrWhiteSpace(username)) return RedirectToPage("/Login");
 
-            var entity = _db.MDRecords
-                .AsNoTracking()
-                .FirstOrDefault(x =>
-                    x.RecordID == id);
+            if (actor == null) return RedirectToPage("/AccessDenied");
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
 
-            if (entity == null)
-            {
-                return;
-            }
-
+            var role = QMSApplication.Data.TeamSetupService.Role(actor.Role);
+            var entity = access.Records(actor).FirstOrDefault(x => x.RecordID == id);
+            if (entity == null) return NotFound();
 
             DeliverableId = entity.Id;
             // Normalize imported status values
@@ -99,6 +95,7 @@ namespace QMSApplication.Pages
                 UGs =
                     entity.UGs
             };
+            return Page();
         }
     }
 }
