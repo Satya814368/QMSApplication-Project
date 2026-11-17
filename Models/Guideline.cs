@@ -20,6 +20,12 @@ namespace QMSApplication.Models
         [Required]
         public string Content { get; set; } = string.Empty;
 
+        // Bit flags: Admin=1, Manager=2, Team Lead=4, User=8, Guest=16. Existing guidance targets everyone.
+        public int TargetRoles { get; set; } = 31;
+        public Guid Version { get; set; } = Guid.NewGuid();
+        public bool ContentIsPlainText { get; set; }
+        [MaxLength(100)] public string UpdatedBy { get; set; } = "";
+
         public int DisplayOrder { get; set; }
 
         public bool IsActive { get; set; } = true;

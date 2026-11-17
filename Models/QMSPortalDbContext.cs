@@ -11,6 +11,7 @@ namespace QMSApplication.Models
         }
         public DbSet<MDEntity> MDRecords { get; set; } = null!;
         public DbSet<MDAuditLog> MDAuditLogs { get; set; } = null!;
+        public DbSet<GuidelineReadStatus> GuidelineReadStatuses { get; set; } = null!;
         public DbSet<Guideline> Guidelines { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<NotificationUserStatus> NotificationUserStatuses { get; set; } = null!;
@@ -32,6 +33,17 @@ namespace QMSApplication.Models
     ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Guideline>(b => {
+                b.Property(x => x.Version).IsConcurrencyToken();
+                b.Property(x => x.TargetRoles).HasDefaultValue(31);
+                b.Property(x => x.ContentIsPlainText).HasDefaultValue(false);
+                b.Property(x => x.UpdatedBy).HasDefaultValue("");
+            });
+            modelBuilder.Entity<GuidelineReadStatus>(b => {
+                b.HasKey(x => new { x.UserId, x.GuidelineId });
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Guideline).WithMany().HasForeignKey(x => x.GuidelineId).OnDelete(DeleteBehavior.Cascade);
+            });
             modelBuilder.Entity<RegistrationChallenge>(b => {
                 b.Property(x => x.Id).ValueGeneratedNever();
                 b.Property(x => x.Version).IsConcurrencyToken();

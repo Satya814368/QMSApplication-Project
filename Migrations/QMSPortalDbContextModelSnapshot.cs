@@ -152,6 +152,11 @@ namespace QMSApplication.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<bool>("ContentIsPlainText")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -166,6 +171,11 @@ namespace QMSApplication.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("TargetRoles")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(31);
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -174,9 +184,41 @@ namespace QMSApplication.Migrations
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasDefaultValue("");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Guidelines");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.GuidelineReadStatus", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("GuidelineId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ReadAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("SeenVersion")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("UserId", "GuidelineId");
+
+                    b.HasIndex("GuidelineId");
+
+                    b.ToTable("GuidelineReadStatuses");
                 });
 
             modelBuilder.Entity("QMSApplication.Models.ImportBatch", b =>
@@ -864,6 +906,25 @@ namespace QMSApplication.Migrations
                     b.Navigation("AssignedUser");
 
                     b.Navigation("Deliverable");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.GuidelineReadStatus", b =>
+                {
+                    b.HasOne("QMSApplication.Models.Guideline", "Guideline")
+                        .WithMany()
+                        .HasForeignKey("GuidelineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QMSApplication.Models.PortalUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Guideline");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("QMSApplication.Models.MDEntity", b =>
