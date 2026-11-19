@@ -41,6 +41,7 @@ namespace QMSApplication.Models
             // Forgot Password OTP
             modelBuilder.Entity<PasswordRecoveryChallenge>(b =>
             {
+                b.Property(x => x.Version).IsConcurrencyToken();
                 b.Property(x => x.Id).ValueGeneratedNever();
                 b.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
                 b.HasIndex(x => x.LastSentAtUtc);

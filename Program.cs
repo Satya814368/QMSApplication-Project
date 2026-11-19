@@ -32,7 +32,7 @@ builder.Services.AddRateLimiter(o => {
     o.RejectionStatusCode = 429;
     o.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(c => {
         var path = c.Request.Path.Value?.ToLowerInvariant() ?? "";
-        return new[] { "/login", "/register", "/verifyregistration", "/forgotpassword", "/resetpassword" }.Contains(path) && HttpMethods.IsPost(c.Request.Method)
+        return new[] { "/login", "/register", "/verifyregistration", "/forgotpassword", "/verifypasswordotp", "/resetpassword" }.Contains(path) && HttpMethods.IsPost(c.Request.Method)
             ? System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(c.Connection.RemoteIpAddress?.ToString() ?? "local", _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
             : System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("pages");
     });

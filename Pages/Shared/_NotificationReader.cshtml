@@ -1,0 +1,24 @@
+<dialog id="notification-reader" class="qms-notice-reader" aria-labelledby="notification-reader-heading"
+        data-pending-url="@Url.Page("/Notifications","Pending")" data-read-url="@Url.Page("/Notifications","Read")">
+    <header class="qms-notice-reader-header">
+        <div><p class="qms-notice-eyebrow">STAY INFORMED</p><h2 id="notification-reader-heading">Your notifications</h2></div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-close-notification-reader hidden>Close</button>
+    </header>
+    <p class="qms-notice-reader-help" data-notification-reader-help>Acknowledge your notifications to continue.</p>
+    <p class="qms-notice-reader-error" data-notification-reader-error role="alert" hidden></p>
+    <div class="qms-notice-preview-list" data-notification-previews></div>
+    <section class="qms-notice-expanded" data-notification-detail hidden>
+        <button type="button" class="btn btn-sm btn-link ps-0 mb-3" data-notification-back>← All pending notifications</button>
+        <h3 class="h4" data-notification-title></h3><p class="text-muted small" data-notification-date></p>
+        <div class="qms-notice-full-message" data-notification-message tabindex="0"></div>
+        <form method="post" asp-page="/Notifications" asp-page-handler="Acknowledge" data-notification-acknowledge class="mt-4">
+            <input type="hidden" name="id" value="" />
+            <button type="submit" class="btn btn-primary" data-notification-ack-button>Acknowledge</button>
+        </form>
+    </section>
+    <footer class="qms-notice-reader-footer">
+        <span class="text-muted small" data-notification-reader-count></span>
+        <form method="post" asp-page="/Dashboard" asp-page-handler="Logout"><button class="btn btn-sm btn-outline-secondary">Sign out</button></form>
+    </footer>
+</dialog>
+<noscript><div class="alert alert-info">Open <a asp-page="/Notifications">Notifications</a> to read and acknowledge your messages before making changes.</div></noscript>

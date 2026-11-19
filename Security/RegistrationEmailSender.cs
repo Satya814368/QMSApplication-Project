@@ -17,10 +17,12 @@ public class RegistrationEmailOptions
 public interface IRegistrationEmailSender
 {
     bool IsConfigured { get; }
+    bool CanSendPasswordReset => IsConfigured && !IsDemo;
     bool IsDemo => false;
     string? DemoCode => null;
     Task SendAsync(string recipient, string code, CancellationToken cancellationToken = default);
-    Task SendPasswordResetAsync(string recipient, string code, CancellationToken cancellationToken = default);
+    Task SendPasswordResetAsync(string recipient, string code, CancellationToken cancellationToken = default)
+        => throw new RegistrationEmailDeliveryException();
 }
 public sealed class RegistrationEmailDeliveryException : Exception { }
 
@@ -35,26 +37,27 @@ public sealed class SmtpRegistrationEmailSender : IRegistrationEmailSender
     public string? DemoCode => IsDemo ? _http.HttpContext?.Session.GetString(DemoCodeSessionKey) : null;
     public SmtpRegistrationEmailSender(IOptionsMonitor<RegistrationEmailOptions> options, ILogger<SmtpRegistrationEmailSender> logger, IWebHostEnvironment environment, IHttpContextAccessor http)
     { _options = options; _logger = logger; _environment = environment; _http = http; }
-    public bool IsConfigured
+    private bool SmtpConfigured
     {
         get
         {
             var o = _options.CurrentValue;
-            if (o.DemoMode) return IsDemo;
             return o.Enabled && !string.IsNullOrWhiteSpace(o.Host) && o.Port is > 0 and <= 65535 && o.Port != 465 &&
                 MailAddress.TryCreate(o.FromAddress, out _) &&
                 (string.IsNullOrEmpty(o.Username) == string.IsNullOrEmpty(o.Password));
         }
     }
+    // Registration may remain in demo mode while recovery always uses real email.
+    public bool CanSendPasswordReset => SmtpConfigured;
+    public bool IsConfigured => _options.CurrentValue.DemoMode ? IsDemo : SmtpConfigured;
     public Task SendAsync(string recipient, string code, CancellationToken cancellationToken = default)
         => SendCoreAsync(recipient, code, false, cancellationToken);
     public Task SendPasswordResetAsync(string recipient, string code, CancellationToken cancellationToken = default)
         => SendCoreAsync(recipient, code, true, cancellationToken);
     private async Task SendCoreAsync(string recipient, string code, bool recovery, CancellationToken cancellationToken)
     {
-        if (recovery && IsDemo) throw new RegistrationEmailDeliveryException();
-        if (!IsConfigured) throw new RegistrationEmailDeliveryException();
-        if (IsDemo)
+        if (recovery ? !CanSendPasswordReset : !IsConfigured) throw new RegistrationEmailDeliveryException();
+        if (!recovery && IsDemo)
         {
             // Demo only: show the fixed code to this registration browser, never send email.
             _http.HttpContext?.Session.SetString(DemoCodeSessionKey, DemoRegistrationService.Code);

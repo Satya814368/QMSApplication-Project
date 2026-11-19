@@ -2,10 +2,9 @@
 @model QMSApplication.Pages.ManageUsersModel
 @using QMSApplication.Security
 @{ViewData["Title"]="Manage Users & Roles";}
-<h1 class="h3">Manage Users &amp; Roles</h1><p>Admin only. Approve registrations, assign roles, activate/deactivate accounts and issue password reset links. For employees who leave, uncheck Active, provide a reason and Save account to block access while preserving their work. Permanently delete only unused accounts. The last active Admin is protected.</p>
+<h1 class="h3">Manage Users &amp; Roles</h1><p>Admin only. Approve registrations, assign roles, activate/deactivate accounts. Users reset their own passwords using an email OTP from Forgot password on the sign-in page. For employees who leave, uncheck Active, provide a reason and Save account to block access while preserving their work. Permanently delete only unused accounts. The last active Admin is protected.</p>
 @if(TempData["AccountSuccess"] is string success){<div class="alert alert-success">@success</div>}
 <div asp-validation-summary="All" class="text-danger"></div>
-@if(Model.ResetLink!=null){<div class="alert alert-warning" role="status"><strong>Reset link — shown once, expires in 15 minutes:</strong><code class="d-block" style="overflow-wrap:anywhere">@Model.ResetLink</code><p>After verifying the person's identity, send this path with your official application address through your approved company channel. Anyone holding the link can reset that account. No email/SMS is sent automatically.</p></div>}
 <div class="card p-3 mb-3"><h2 class="h5">Departments</h2><p>Delete a department only after removing its user and team assignments.</p>
 @foreach (var department in Model.Departments)
 {
@@ -25,7 +24,6 @@
 <div class="col-md-3"><label for="dept-@user.Id">Department</label><select id="dept-@user.Id" name="departmentId" class="form-select"><option value="">None</option>@foreach(var department in Model.Departments){<option value="@department.Id" selected="@(department.Id==user.DepartmentId)">@department.Name</option>}</select></div>
 <div class="col-md-6"><label class="me-3"><input type="checkbox" name="approved" value="true" checked="@user.IsApproved"/> Approved</label><label><input type="checkbox" name="active" value="true" checked="@user.IsActive"/> Active</label><label class="d-block"><input type="checkbox" name="departmentScope" value="true" checked="@user.ManagerDepartmentScope"/> Manager: department-wide scope</label></div>
 <div class="col-md-9"><input name="reason" required maxlength="500" placeholder="Reason for approval / role or account change" class="form-control" aria-label="Change reason for @user.Username"/></div><div class="col-md-3"><button class="btn btn-primary">Save account</button></div></div></form>
-@if(user.IsApproved&&user.IsActive){<form method="post" asp-page-handler="Reset" class="mt-2"><input type="hidden" name="userId" value="@user.Id"/><button class="btn btn-outline-secondary">Create password reset link</button></form>}
 <details class="border rounded p-2 mt-3"><summary class="text-danger">Delete user</summary>
     <p class="mt-2 mb-2">Permanent deletion is available only for accounts without team links, assigned work or recorded history. For a former employee with history, use Active → unchecked → Save account above.</p>
     <form method="post" asp-page-handler="DeleteUser" class="row g-2" onsubmit="return confirm('Permanently delete this unused user account?');">
@@ -36,5 +34,4 @@
     </form></details>
 </section>}
 <div class="d-flex gap-2 mb-4">@if(Model.PageNumber>1){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a>}@if(Model.PageNumber<Model.Pages){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a>}</div>
-<details class="card p-3 mb-3"><summary>Pending password help requests</summary>@foreach(var request in Model.Requests){<form method="post" asp-page-handler="Reset" class="my-2"><input type="hidden" name="userId" value="@request.UserId"/><span>@request.User.Username · @request.RequestedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span><button class="btn btn-sm btn-outline-primary ms-2">Verify identity, then issue link</button></form>}</details>
 <details class="card p-3"><summary>Latest 50 account / department audit events (UTC)</summary>@foreach(var audit in Model.Audit){<p class="mt-2">@audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm") · @audit.Username · @audit.Action</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">@audit.DetailsJson</pre>}</details>

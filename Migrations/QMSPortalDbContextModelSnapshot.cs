@@ -541,6 +541,55 @@ namespace QMSApplication.Migrations
                     b.ToTable("NotificationUserStatuses");
                 });
 
+            modelBuilder.Entity("QMSApplication.Models.PasswordRecoveryChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("AccountSecurityStamp")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastSentAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("OwnerHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastSentAtUtc");
+
+                    b.HasIndex("UserId", "CreatedAtUtc");
+
+                    b.ToTable("PasswordRecoveryChallenges");
+                });
+
             modelBuilder.Entity("QMSApplication.Models.PasswordResetRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -927,6 +976,15 @@ namespace QMSApplication.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("QMSApplication.Models.PasswordRecoveryChallenge", b =>
+                {
+                    b.HasOne("QMSApplication.Models.PortalUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("QMSApplication.Models.PasswordResetRequest", b =>

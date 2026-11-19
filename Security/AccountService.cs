@@ -125,6 +125,7 @@ public sealed class AccountService
                 await _db.NotificationUserStatuses.AnyAsync(x => x.Username == user.Username);
             if (hasLinks) return "This user has team links, assigned work or recorded history. For an employee who left, uncheck Active, enter a reason and Save account. Reassign remaining work separately; history will be preserved.";
 
+            _db.PasswordRecoveryChallenges.RemoveRange(await _db.PasswordRecoveryChallenges.Where(x => x.UserId == id).ToListAsync());
             _db.PasswordResetRequests.RemoveRange(await _db.PasswordResetRequests.Where(x => x.UserId == id).ToListAsync());
             Audit(actorName, "Account deleted", new { UserId = id, user.Username, user.FullName, user.Role, user.IsActive, Reason = reason.Trim() });
             _db.PortalUsers.Remove(user);
@@ -165,82 +166,9 @@ public sealed class AccountService
         }
     }
 
-    public async Task RequestReset(string identifier)
-    {
-        identifier = identifier.Trim();
-        if (identifier.Length > 200)
-            return;
-        var user = await _db.PortalUsers.AsNoTracking().FirstOrDefaultAsync(x => x.IsActive && x.IsApproved && (x.Username == identifier || x.Email == identifier));
-        if (user == null)
-            return;
-        var since = DateTime.UtcNow.AddHours(-1);
-        if (await _db.PasswordResetRequests.AnyAsync(x => x.UserId == user.Id && !x.IsClosed && x.RequestedAtUtc >= since))
-            return;
-        _db.PasswordResetRequests.Add(new PasswordResetRequest { UserId = user.Id, RequestedAtUtc = DateTime.UtcNow });
-        await _db.SaveChangesAsync();
-    }
-
-    public async Task<(string? Token, string? Error)> IssueReset(string actor, long id)
-    {
-        await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        try
-        {
-            if (await Admin(actor) == null)
-                return (null, "Only Admin can issue password reset links.");
-            var user = await _db.PortalUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.IsActive && x.IsApproved);
-            if (user == null)
-                return (null, "Choose an active, approved account.");
-            var old = await _db.PasswordResetRequests.Where(x => x.UserId == id && !x.IsClosed).ToListAsync();
-            foreach (var grant in old)
-            {
-                grant.IsClosed = true;
-                grant.Version = Guid.NewGuid();
-            }
-
-            var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-            _db.PasswordResetRequests.Add(new PasswordResetRequest { UserId = id, RequestedAtUtc = DateTime.UtcNow, ExpiresAtUtc = DateTime.UtcNow.AddMinutes(15), TokenHash = Digest(token) });
-            Audit(actor, "Password reset link issued", new { UserId = id, ExpiresInMinutes = 15 });
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
-            return (token, null);
-        }
-        catch (DbUpdateException)
-        {
-            _db.ChangeTracker.Clear();
-            return (null, "Reset request changed. Refresh and retry.");
-        }
-    }
-
-    public async Task<string?> Reset(string token, string password)
-    {
-        if (password.Length is < 12 or > 128 || string.IsNullOrEmpty(token) || token.Length > 100)
-            return "Use a valid reset link and a password between 12 and 128 characters.";
-        await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        try
-        {
-            var hash = Digest(token);
-            var now = DateTime.UtcNow;
-            var grant = await _db.PasswordResetRequests.Include(x => x.User).SingleOrDefaultAsync(x => x.TokenHash == hash && !x.IsClosed && x.ExpiresAtUtc > now);
-            if (grant == null || !grant.User.IsActive || !grant.User.IsApproved)
-                return "This reset link is invalid, expired or already used. Contact Admin for a new link.";
-            grant.User.PasswordHash = new PasswordHasher<PortalUser>().HashPassword(grant.User, password);
-            grant.User.SecurityStamp = Guid.NewGuid();
-            grant.User.Version = Guid.NewGuid();
-            foreach (var pending in await _db.PasswordResetRequests.Where(x => x.UserId == grant.UserId && !x.IsClosed).ToListAsync())
-            {
-                pending.IsClosed = true;
-                pending.Version = Guid.NewGuid();
-            }
-
-            Audit(grant.User.Username, "Password reset completed", new { grant.UserId });
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
-            return null;
-        }
-        catch (DbUpdateException)
-        {
-            _db.ChangeTracker.Clear();
-            return "The reset link changed or was already used. Request a new one.";
-        }
-    }
+    // Retired link API: retained to reject stale callers after an application update.
+    public Task<(string? Token, string? Error)> IssueReset(string actor, long id)
+        => Task.FromResult<(string?, string?)>((null, "Reset links are no longer issued. Use Forgot password to receive an email OTP."));
+    public Task<string?> Reset(string token, string password)
+        => Task.FromResult<string?>("Reset links are no longer accepted. Use Forgot password and verify an email OTP.");
 }

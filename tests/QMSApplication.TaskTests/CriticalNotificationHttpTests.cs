@@ -64,13 +64,26 @@ public class CriticalNotificationHttpTests
         var forbidden=await client.GetAsync("/NotificationCreate");Assert.Equal("/AccessDenied",forbidden.Headers.Location?.ToString());
         await Login("admin");var admin=await Get("/NotificationAdmin?handler=Acknowledgements&id="+noticeId);Assert.Contains("Labelling",admin);Assert.Contains("Software",admin);Assert.Contains("TEAM-A-MEMBER",admin);Assert.Contains("TEAM-B-SECRET",admin);
         var filtered=await Get("/NotificationAdmin?handler=Acknowledgements&id="+noticeId+"&DepartmentId="+departmentId);Assert.Contains("TEAM-B-SECRET",filtered);Assert.DoesNotContain("TEAM-A-MEMBER",filtered);
-        await Login("TEAM-B-SECRET");var blocked=await client.GetAsync("/Welcome");Assert.Equal("/Notifications",blocked.Headers.Location?.ToString());var inbox=await Get("/Notifications");Assert.Contains("Acknowledge",inbox);Assert.DoesNotContain("class=\"priority\"",inbox);
-        var afterRead=await client.GetAsync("/Welcome");Assert.Equal("/Notifications",afterRead.Headers.Location?.ToString());
-        var ack=await client.PostAsync("/Notifications?handler=Acknowledge",new FormUrlEncodedContent(new Dictionary<string,string>{["id"]=noticeId.ToString(),["__RequestVerificationToken"]=Token(inbox)}));Assert.Equal(HttpStatusCode.Redirect,ack.StatusCode);
-        var stillPending=await client.GetAsync("/Welcome");Assert.Equal("/Notifications",stillPending.Headers.Location?.ToString());
+        await Login("TEAM-B-SECRET");var welcome=await Get("/Welcome");Assert.Contains("id=\"notification-reader\"",welcome);Assert.Contains("notification-reader.js",welcome);
+        var pending=await Get("/Notifications?handler=Pending");Assert.Contains("Notice",pending);Assert.Contains("HTTP critical",pending);Assert.DoesNotContain("TEAM-A-MEMBER",pending);
+        var token=Token(welcome);
+        async Task<HttpResponseMessage> JsonPost(string path,long id) { var req=new HttpRequestMessage(HttpMethod.Post,path);req.Headers.Accept.ParseAdd("application/json");req.Content=new FormUrlEncodedContent(new Dictionary<string,string>{["id"]=id.ToString(),["__RequestVerificationToken"]=token});return await client.SendAsync(req); }
+        var mutation=await JsonPost("/MyTasks?handler=Update",noticeId);Assert.Equal(HttpStatusCode.Conflict,mutation.StatusCode);
+        var badCsrf=await client.PostAsync("/Notifications?handler=Read",new FormUrlEncodedContent(new Dictionary<string,string>{{"id",noticeId.ToString()}}));Assert.Equal(HttpStatusCode.BadRequest,badCsrf.StatusCode);
+        var read=await JsonPost("/Notifications?handler=Read",noticeId);Assert.Equal(HttpStatusCode.OK,read.StatusCode);Assert.Contains("Team update",await read.Content.ReadAsStringAsync());
+        using(var scope=app.Services.CreateScope()){var status=await scope.ServiceProvider.GetRequiredService<QMSPortalDbContext>().NotificationUserStatuses.SingleAsync(s=>s.Username=="TEAM-B-SECRET"&&s.NotificationId==noticeId);Assert.True(status.IsRead);Assert.False(status.IsAcknowledged);}
+        Assert.Contains("Notice",await Get("/Notifications?handler=Pending"));
+        var ack=await JsonPost("/Notifications?handler=Acknowledge",noticeId);Assert.Equal(HttpStatusCode.OK,ack.StatusCode);Assert.DoesNotContain("\"title\":\"Notice\"",await ack.Content.ReadAsStringAsync());
+        mutation=await JsonPost("/MyTasks?handler=Update",noticeId);Assert.Equal(HttpStatusCode.Conflict,mutation.StatusCode);
         long secondId;using(var scope=app.Services.CreateScope()){secondId=(await scope.ServiceProvider.GetRequiredService<QMSPortalDbContext>().Notifications.SingleAsync(n=>n.Title=="HTTP critical")).Id;}
-        var secondAck=await client.PostAsync("/Notifications?handler=Acknowledge",new FormUrlEncodedContent(new Dictionary<string,string>{["id"]=secondId.ToString(),["__RequestVerificationToken"]=Token(inbox)}));Assert.Equal(HttpStatusCode.Redirect,secondAck.StatusCode);
+        var secondAck=await JsonPost("/Notifications?handler=Acknowledge",secondId);Assert.Equal(HttpStatusCode.OK,secondAck.StatusCode);Assert.Contains("\"count\":0",await secondAck.Content.ReadAsStringAsync());
         Assert.Contains("Welcome",await Get("/Welcome"));
+        await Login("guest");var guestPage=await Get("/Welcome");token=Token(guestPage);
+        var foreignRead=await JsonPost("/Notifications?handler=Read",noticeId);Assert.Equal(HttpStatusCode.NotFound,foreignRead.StatusCode);
+        long guestNotice;using(var scope=app.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<QMSPortalDbContext>();var n=new Notification{Title="Guest notice",Message="Guest full text",IsPublished=true,TargetRole="Guest"};db.Add(n);await db.SaveChangesAsync();guestNotice=n.Id;}
+        var guestRead=await JsonPost("/Notifications?handler=Read",guestNotice);Assert.Equal(HttpStatusCode.OK,guestRead.StatusCode);
+        var guestAck=await JsonPost("/Notifications?handler=Acknowledge",guestNotice);Assert.Equal(HttpStatusCode.OK,guestAck.StatusCode);
+        await Login("TEAM-B-SECRET");
         var readerDenied=await client.GetAsync("/NotificationAdmin");Assert.Equal("/AccessDenied",readerDenied.Headers.Location?.ToString());
         await Login("admin");filtered=await Get("/NotificationAdmin?handler=Acknowledgements&id="+noticeId+"&DepartmentId="+departmentId);Assert.Contains("Acknowledged: 1",filtered);
         await app.StopAsync();

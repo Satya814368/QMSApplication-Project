@@ -200,7 +200,8 @@ public class RoleHttpTests
         await Login("admin");
         var users = await Get("/ManageUsers");
         Assert.Contains("Manage Users", users);
-        Assert.Contains("Create password reset link", users);
+        Assert.DoesNotContain("Create password reset link", users);
+        Assert.Contains("email OTP", users);
         Assert.Contains("<span>Manage Users</span>", users);
         var badCsrf = await client.PostAsync("/ManageUsers?handler=Save", new FormUrlEncodedContent(new Dictionary<string, string> { { "userId", memberId.ToString() } }));
         Assert.Equal(HttpStatusCode.BadRequest, badCsrf.StatusCode);
@@ -221,7 +222,7 @@ public class RoleHttpTests
         }));
         Assert.Equal("/VerifyRegistration", sent.Headers.Location?.ToString());
         using (var scope = app.Services.CreateScope()) Assert.False(await scope.ServiceProvider.GetRequiredService<QMSPortalDbContext>().PortalUsers.AnyAsync(x => x.Username == "emailperson"));
-        var verify = await Get("/VerifyRegistration"); Assert.Contains("Email verification code", verify);
+        var verify = await Get("/VerifyRegistration"); Assert.Contains("Verify your email", verify);
         Assert.DoesNotContain(registrationMail.Messages.Last().Code, verify);
         var wrong = registrationMail.Messages.Last().Code == "123456" ? "654321" : "123456";
         var rejected = await client.PostAsync("/VerifyRegistration", new FormUrlEncodedContent(new Dictionary<string,string> { { "Code", wrong }, { "__RequestVerificationToken", Token(verify) } }));
@@ -233,7 +234,7 @@ public class RoleHttpTests
             var user = await scope.ServiceProvider.GetRequiredService<QMSPortalDbContext>().PortalUsers.SingleAsync(x => x.Username == "emailperson");
             Assert.Equal("User", user.Role); Assert.False(user.IsApproved); Assert.False(user.IsActive);
         }
-        Assert.Contains("Your email is verified", await Get("/register"));
+        Assert.Contains("Your OTP check is complete", await Get("/register"));
         await app.StopAsync();
     }
 }

@@ -218,40 +218,14 @@ public class RoleAccessTests
     }
 
     [Fact]
-    public async Task ResetLinksAreHashedSingleUseAndInvalidateOldSessions()
+    public async Task LegacyResetLinksCannotBeIssuedOrUsed()
     {
-        await using var f = await Fixture.Create();
-        var user = f.User("member");
-        var old = f.Http(user);
-        var accounts = new AccountService(f.Db);
-        Assert.Null((await accounts.IssueReset("member", user.Id)).Token);
-        var issued = await accounts.IssueReset("admin", user.Id);
-        Assert.Null(issued.Error);
-        Assert.NotNull(issued.Token);
-        var grant = await f.Db.PasswordResetRequests.SingleAsync();
-        Assert.NotEqual(issued.Token, grant.TokenHash);
-        Assert.Equal(AccountService.Digest(issued.Token!), grant.TokenHash);
-        Assert.NotNull(await accounts.Reset("123456", "NewPassword12345!"));
-        Assert.Null(await accounts.Reset(issued.Token!, "NewPassword12345!"));
-        Assert.NotNull(await accounts.Reset(issued.Token!, "DifferentPassword12!"));
-        Assert.Null(await new AccessService(f.Db).Current(old));
-        Assert.NotEqual(PasswordVerificationResult.Failed, new PasswordHasher<PortalUser>().VerifyHashedPassword(user, user.PasswordHash!, "NewPassword12345!"));
-        Assert.DoesNotContain(await f.Db.TeamAuditEvents.ToListAsync(), x => x.DetailsJson.Contains(issued.Token!));
-    }
-
-    [Fact]
-    public async Task ResetExpiresAndIssuingNewLinkRevokesPreviousLink()
-    {
-        await using var f = await Fixture.Create();
-        var accounts = new AccountService(f.Db);
-        var id = f.User("member").Id;
-        var first = await accounts.IssueReset("admin", id);
-        var next = await accounts.IssueReset("admin", id);
-        Assert.NotNull(await accounts.Reset(first.Token!, "NewPassword12345!"));
-        var grant = await f.Db.PasswordResetRequests.SingleAsync(x => !x.IsClosed);
-        grant.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(-1);
-        await f.Db.SaveChangesAsync();
-        Assert.NotNull(await accounts.Reset(next.Token!, "NewPassword12345!"));
+        await using var f = await Fixture.Create();var accounts=new AccountService(f.Db);var user=f.User("member");
+        var oldHash=user.PasswordHash;
+        f.Db.PasswordResetRequests.Add(new PasswordResetRequest { UserId=user.Id,TokenHash=AccountService.Digest("old-link"),ExpiresAtUtc=DateTime.UtcNow.AddHours(1) });await f.Db.SaveChangesAsync();
+        Assert.Null((await accounts.IssueReset("admin",user.Id)).Token);
+        Assert.Null((await accounts.IssueReset("member",user.Id)).Token);
+        Assert.NotNull(await accounts.Reset("old-link","NewPassword12345!"));Assert.Equal(oldHash,user.PasswordHash);
     }
 
     [Fact]

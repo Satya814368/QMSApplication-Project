@@ -42,6 +42,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/portal-shell.css" asp-append-version="true" />
 <style>.qms-guidelines-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;flex-shrink:0}.qms-guidelines-dot[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="~/css/notification-reader.css" asp-append-version="true" />
 </head>
 <body class="qms-app qms-page-@key @(signedIn ? "qms-signed-in" : "qms-public")">
     <a href="#main-content" class="qms-skip-link">Skip to page content</a>
@@ -110,11 +111,13 @@
         <main id="main-content" class="qms-public-content" tabindex="-1">@RenderBody()</main>
         <partial name="_CopyrightFooter" />
     }
+    @if (signedIn && key != "error") { <partial name="_NotificationReader" /> }
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/portal-shell.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 <script src="~/js/guideline-updates.js" asp-append-version="true"></script>
+<script src="~/js/notification-reader.js" asp-append-version="true"></script>
 </body>
 </html>

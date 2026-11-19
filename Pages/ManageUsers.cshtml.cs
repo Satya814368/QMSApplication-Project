@@ -20,7 +20,6 @@ public class ManageUsersModel : PageModel
 
     public List<PortalUser> Users { get; private set; } = new();
     public List<Department> Departments { get; private set; } = new();
-    public List<PasswordResetRequest> Requests { get; private set; } = new();
     public List<TeamAuditEvent> Audit { get; private set; } = new();
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
@@ -33,7 +32,6 @@ public class ManageUsersModel : PageModel
     public int Total { get; set; }
 
     public int Pages => Math.Max(1, (Total + 49) / 50);
-    public string? ResetLink { get; set; }
 
     private async Task<bool> Allowed()
     {
@@ -54,7 +52,6 @@ public class ManageUsersModel : PageModel
         PageNumber = Math.Clamp(PageNumber, 1, Pages);
         Users = await q.OrderBy(x => x.Username).Skip((PageNumber - 1) * 50).Take(50).Select(x => new PortalUser { Id = x.Id, Username = x.Username, FullName = x.FullName, Role = x.Role, IsActive = x.IsActive, IsApproved = x.IsApproved, Version = x.Version, DepartmentId = x.DepartmentId, ManagerDepartmentScope = x.ManagerDepartmentScope }).ToListAsync();
         Departments = await _db.Departments.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
-        Requests = await _db.PasswordResetRequests.AsNoTracking().Include(x => x.User).Where(x => !x.IsClosed && x.TokenHash == null).OrderByDescending(x => x.RequestedAtUtc).Take(50).ToListAsync();
         Audit = await _db.TeamAuditEvents.AsNoTracking().Where(x => x.Action.Contains("Account") || x.Action.Contains("Password") || x.Action.Contains("Registration") || x.Action.Contains("Department")).OrderByDescending(x => x.Id).Take(50).ToListAsync();
     }
 
@@ -110,18 +107,7 @@ public class ManageUsersModel : PageModel
         await Load(); return Page();
     }
 
-    public async Task<IActionResult> OnPostResetAsync(long userId)
-    {
-        if (!await Allowed())
-            return RedirectToPage("/AccessDenied");
-        var result = await _accounts.IssueReset(_actor!.Username, userId);
-        if (result.Error != null)
-            ModelState.AddModelError("", result.Error);
-        else
-            ResetLink = Url.Page("/ResetPassword", new { token = result.Token });
-        await Load();
-        return Page();
-    }
+    public IActionResult OnPostReset() => BadRequest("Reset links are no longer issued. Use Forgot password and an email OTP.");
 
     public async Task<IActionResult> OnPostDepartmentAsync(string? name)
     {
