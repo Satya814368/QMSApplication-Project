@@ -3,7 +3,7 @@
 @using QMSApplication.Data
 @{ ViewData["Title"] = "My Team"; }
 <h1 class="h3">My Team</h1>
-<p>Team setup, membership and deliverable ownership.</p>
+<p>Team setup and membership.</p>
 @if (TempData["TeamSuccess"] is string message) { <div class="alert alert-success" role="status">@message</div> }
 <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
 <div class="alert alert-info">This page displays the teams assigned to your account, including each team's Manager, Team Lead and members.</div>
@@ -68,12 +68,5 @@
 }
 @if (Model.IsAdmin)
 {
-    <section class="card p-3 mb-4"><h2 class="h5">Map deliverables to owning teams</h2><p>New deliverables require an owning team. Map older, unassigned deliverables here. Only Admin can change ownership. Managers cannot delete unassigned deliverables.</p>
-        <form method="get" class="d-flex flex-wrap gap-2 mb-3"><label for="team-record-search" class="visually-hidden">Search deliverables</label><input asp-for="Search" id="team-record-search" class="form-control" style="max-width:350px" maxlength="100" placeholder="Record ID or deliverable name" /><label class="d-flex align-items-center gap-2"><input asp-for="OnlyUnassigned" /> Only unassigned</label><button class="btn btn-primary">Search</button></form>
-        <p>@Model.RecordCount deliverables · Page @Model.PageNumber / @Model.PageCount</p>
-        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Record / deliverable</th><th>Owning team</th></tr></thead><tbody>@foreach (var record in Model.Records)
-        { <tr><td>@record.RecordID — @record.DeliverableName</td><td><form method="post" asp-page-handler="Map" class="d-flex gap-2"><input type="hidden" name="recordId" value="@record.Id" /><input type="hidden" name="version" value="@record.ConcurrencyToken" /><select name="teamId" class="form-select" aria-label="Owning team for @record.RecordID"><option value="">Unassigned</option>@foreach (var team in Model.Teams) { <option value="@team.Id" selected="@(record.TeamId == team.Id)">@team.Name</option> }</select><button class="btn btn-primary">Save ownership</button></form></td></tr> }
-        </tbody></table></div><div class="d-flex gap-2">@if (Model.PageNumber > 1) { <a asp-page="/MyTeam" asp-route-Search="@Model.Search" asp-route-OnlyUnassigned="@Model.OnlyUnassigned" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a> }@if (Model.PageNumber < Model.PageCount) { <a asp-page="/MyTeam" asp-route-Search="@Model.Search" asp-route-OnlyUnassigned="@Model.OnlyUnassigned" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a> }</div>
-    </section>
     <details class="card p-3"><summary>Latest 50 team changes (UTC)</summary><div class="table-responsive"><table class="table"><thead><tr><th>When</th><th>Who</th><th>Action / details</th></tr></thead><tbody>@foreach (var audit in Model.Audits) { <tr><td>@audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@audit.Username</td><td>@audit.Action<pre style="white-space:pre-wrap;overflow-wrap:anywhere">@audit.DetailsJson</pre></td></tr> }</tbody></table></div></details>
 }

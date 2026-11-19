@@ -53,15 +53,7 @@ namespace QMSApplication.Filters
             }
 
             var mandatoryNotifications =
-                await _db.Notifications
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.IsPublished &&
-                        x.IsMandatory &&
-                        (
-                            string.IsNullOrEmpty(x.TargetRole) ||
-                            x.TargetRole == userRole
-                        ))
+                await QMSApplication.Security.NotificationReportService.Relevant(_db, userRole)
                     .Select(x => x.Id)
                     .ToListAsync();
 

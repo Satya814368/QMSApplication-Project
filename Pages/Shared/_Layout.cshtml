@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/portal-shell.css" asp-append-version="true" />
+<style>.qms-guidelines-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;flex-shrink:0}.qms-guidelines-dot[hidden]{display:none!important}</style>
 </head>
 <body class="qms-app qms-page-@key @(signedIn ? "qms-signed-in" : "qms-public")">
     <a href="#main-content" class="qms-skip-link">Skip to page content</a>
@@ -63,11 +64,12 @@
                     var url = string.IsNullOrEmpty(item.Module) ? Url.Page(item.Page) : Url.Page(item.Page, new { module = item.Module });
                     <a href="@url" class="qms-nav-link @(section == item.Key ? "is-active" : "")" aria-current="@(section == item.Key ? "page" : null)">
                         <partial name="_NavIcon" model="item.Icon" /><span>@item.Title</span>
+                        @if (item.Key == "guidelines") { <partial name="_GuidelinesUnreadDot" /> }
                     </a>
                 }
                 <p class="qms-nav-label qms-nav-divider">Updates</p>
                 <a asp-page="/Notifications" class="qms-nav-link @(section == "notifications" ? "is-active" : "")" aria-current="@(section == "notifications" ? "page" : null)"><partial name="_NavIcon" model='@("bell")' /><span>Notifications</span></a>
-                @if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
+                @if (new[] { "Admin", "Manager", "Team Lead" }.Contains(QMSApplication.Data.TeamSetupService.Role(role)))
                 {
                     <a asp-page="/NotificationAdmin" class="qms-nav-link @(section == "notificationadmin" ? "is-active" : "")" aria-current="@(section == "notificationadmin" ? "page" : null)"><partial name="_NavIcon" model='@("settings")' /><span>Manage Notifications</span></a>
                 }
@@ -113,5 +115,6 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/portal-shell.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+<script src="~/js/guideline-updates.js" asp-append-version="true"></script>
 </body>
 </html>

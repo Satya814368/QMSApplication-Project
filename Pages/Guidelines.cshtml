@@ -1,82 +1,61 @@
 ﻿@page
 @model QMSApplication.Pages.GuidelinesModel
-
-@{
-    ViewData["Title"] = "Guidelines";
-    Layout = "_PortalLayout";
-}
-
+@using QMSApplication.Security
+@{ ViewData["Title"] = "Guidelines"; Layout = "_PortalLayout"; }
 <div class="guidelines-page">
-
-    <div class="page-header">
-        <h1>Guidelines</h1>
-        <p>Quality and process guidance for using the portal.</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div><h1>Guidelines</h1><p class="text-muted mb-0">Quality and process guidance for your role.</p></div>
+        @if (Model.CanManage) { <a asp-page="/Guidelines" asp-route-add="true" asp-fragment="guideline-editor" class="btn btn-primary">Add guideline</a> }
     </div>
-
-    @if (Model.Guidelines.Count == 0)
+    @if (TempData["GuidelineMessage"] is string message) { <div class="alert alert-info" role="status">@message</div> }
+    @if (Model.CanManage)
     {
-        <div class="empty-message">
-            No guidelines are currently available.
-        </div>
+        <details id="guideline-editor" class="card p-4 mb-4" open="@(Model.Input.Id.HasValue || !ViewData.ModelState.IsValid || Request.Query["add"] == "true")">
+            <summary class="fw-bold">@(Model.Input.Id.HasValue ? "Edit guideline" : "Add guideline")</summary>
+            <form method="post" asp-page-handler="Save" class="mt-3">
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                <input type="hidden" asp-for="Input.Id" /><input type="hidden" asp-for="Input.Version" />
+                <div class="mb-3"><label asp-for="Input.Title" class="form-label">Title</label><input asp-for="Input.Title" class="form-control" maxlength="200" required /></div>
+                <div class="mb-3"><label asp-for="Input.Content" class="form-label">Guideline text</label><textarea asp-for="Input.Content" class="form-control" rows="7" maxlength="20000" required></textarea><small class="text-muted">Use plain text. Line breaks are preserved.</small></div>
+                <div class="mb-3"><label asp-for="Input.DisplayOrder" class="form-label">Display order</label><input asp-for="Input.DisplayOrder" type="number" min="0" max="10000" class="form-control" /></div>
+                <fieldset class="mb-3"><legend class="fs-6">Target roles</legend><div class="d-flex flex-wrap gap-3">
+                @for (var i = 0; i < GuidelineService.Roles.Length; i++)
+                {
+                    var bit = 1 << i;
+                    <label class="form-check-label"><input type="checkbox" name="Input.TargetRoles" value="@bit" checked="@(Model.Input.TargetRoles?.Contains(bit) == true)" class="form-check-input me-1" />@GuidelineService.Roles[i]</label>
+                }
+                </div><small class="text-muted">Members of these roles can read this guideline and receive the red update dot.</small></fieldset>
+                <button class="btn btn-primary">@(Model.Input.Id.HasValue ? "Save changes" : "Add guideline")</button>
+                <a asp-page="/Guidelines" class="btn btn-outline-secondary">Cancel</a>
+            </form>
+        </details>
     }
-    else
+    @if (Model.Guidelines.Count == 0) { <div class="card p-4">No guidelines are currently available for your role.</div> }
+    @foreach (var g in Model.Guidelines)
     {
-        @foreach (var guideline in Model.Guidelines)
-        {
-            <div class="guideline-card">
-                <h2>@guideline.Title</h2>
-
-                <div class="guideline-content">
-                    @Html.Raw(guideline.Content)
-                </div>
+        <article class="card p-4 mb-3">
+            <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+                <h2 class="h4">@g.Title</h2>
+                @if (Model.CanManage)
+                {
+                    <div class="d-flex gap-2">
+                        <a asp-page="/Guidelines" asp-route-editId="@g.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this guideline? It will be removed for all targeted roles.');">
+                            <input type="hidden" name="id" value="@g.Id" /><input type="hidden" name="version" value="@g.Version" />
+                            <button class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
+                }
             </div>
-        }
+            @if (Model.CanManage) { <p class="text-muted small">Target roles: @GuidelineService.Audience(g.TargetRoles)</p> }
+            <div class="guideline-text">@GuidelineService.DisplayContent(g)</div>
+            @if (g.UpdatedAtUtc != default) { <p class="text-muted small mt-3 mb-0">Updated @g.UpdatedAtUtc.ToString("dd MMM yyyy HH:mm") UTC</p> }
+        </article>
     }
-
 </div>
-
 <style>
-    .guidelines-page {
-        padding: 30px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 25px;
-    }
-
-    .page-header h1 {
-        margin-bottom: 8px;
-    }
-
-    .page-header p {
-        color: #666;
-        margin: 0;
-    }
-
-    .guideline-card {
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .guideline-card h2 {
-        margin-top: 0;
-        margin-bottom: 15px;
-    }
-
-    .guideline-content {
-        line-height: 1.7;
-        white-space: normal;
-    }
-
-    .empty-message {
-        background: white;
-        padding: 25px;
-        border-radius: 8px;
-        color: #666;
-    }
+.guidelines-page { width:100%; max-width:1200px; margin:0 auto; }
+.guideline-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; }
+.guidelines-page textarea { resize:vertical; }
+.guidelines-page summary { cursor:pointer; }
 </style>

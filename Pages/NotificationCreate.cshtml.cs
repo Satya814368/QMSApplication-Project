@@ -19,11 +19,7 @@ namespace QMSApplication.Pages
         [BindProperty]
         public string Message { get; set; } = string.Empty;
 
-        [BindProperty]
-        public string Priority { get; set; } = "Normal";
-
-        [BindProperty]
-        public bool IsMandatory { get; set; }
+        
 
         [BindProperty]
         public bool IsPublished { get; set; }
@@ -70,6 +66,9 @@ namespace QMSApplication.Pages
                     "Message is required.");
             }
 
+if (!string.IsNullOrWhiteSpace(TargetRole) && !QMSApplication.Security.NotificationReportService.TargetRoles.Contains(TargetRole))
+    ModelState.AddModelError(nameof(TargetRole), "Choose a valid target role.");
+
             if (!ModelState.IsValid)
             {
                 return Page();
@@ -82,8 +81,6 @@ namespace QMSApplication.Pages
                 Title = Title.Trim(),
                 Message = Message.Trim(),
                 NotificationDateUtc = now,
-                Priority = Priority,
-                IsMandatory = IsMandatory,
                 IsPublished = IsPublished,
                 TargetRole = string.IsNullOrWhiteSpace(TargetRole)
                     ? null

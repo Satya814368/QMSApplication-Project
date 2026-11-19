@@ -1,0 +1,7 @@
+@using QMSApplication.Security
+@inject QMSApplication.Models.QMSPortalDbContext GuidelineDb
+@{
+    var actor = await new AccessService(GuidelineDb).Current(Context);
+    var unread = actor != null && await new GuidelineService(GuidelineDb).HasUnread(actor);
+}
+<span class="qms-guidelines-dot" data-guidelines-unread-url="@Url.Page("/Guidelines", "Unread")" hidden="@(!unread)" role="status" aria-label="Unread guideline updates" title="Unread guideline updates"></span>

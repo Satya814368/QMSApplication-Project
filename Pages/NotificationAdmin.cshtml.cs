@@ -2,121 +2,49 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
-
-namespace QMSApplication.Pages
+using QMSApplication.Security;
+namespace QMSApplication.Pages;
+public class NotificationAdminModel(QMSPortalDbContext db) : PageModel
 {
-    public class NotificationAdminModel : PageModel
+    public List<Notification> Notifications { get; set; } = new();
+    public bool CanManage { get; private set; }
+    public sealed record AcknowledgementPopup(NotificationReportService.Report Report, bool IsAdmin, long Id, long? DepartmentId, long? TeamId);
+    private Task<PortalUser?> Actor() => new AccessService(db).Current(HttpContext);
+    private static bool CanWrite(PortalUser? actor) => actor != null && actor.IsActive && actor.IsApproved && AccessService.Role(actor) is "Admin" or "Manager";
+    public async Task<IActionResult> OnGetAsync()
     {
-        private readonly QMSPortalDbContext _db;
-
-        public NotificationAdminModel(QMSPortalDbContext db)
-        {
-            _db = db;
-        }
-
-        public List<Notification> Notifications { get; set; } = new();
-        public Dictionary<long, List<string>> UnacknowledgedUsernames { get; set; } = new();
-
-        private bool IsAdminOrManager()
-        {
-            var role = HttpContext.Session.GetString("UserRole");
-
-            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase);
-        }
-
-        public async Task<IActionResult> OnGetAsync()
-        {
-            if (!IsAdminOrManager())
-            {
-                return RedirectToPage("/Notifications");
-            }
-
-            Notifications = await _db.Notifications
-                .AsNoTracking()
-                .OrderByDescending(x => x.NotificationDateUtc)
-                .ToListAsync();
-
-            var activeUsers = await _db.PortalUsers.AsNoTracking()
-                .Where(x => x.IsActive)
-                .Select(x => new { x.Username, x.FullName, x.Role })
-                .ToListAsync();
-            var statuses = await _db.NotificationUserStatuses.AsNoTracking()
-                .Where(x => Notifications.Select(n => n.Id).Contains(x.NotificationId))
-                .ToListAsync();
-
-            foreach (var notification in Notifications)
-            {
-                if (!notification.IsPublished || !notification.IsMandatory)
-                {
-                    UnacknowledgedUsernames[notification.Id] = new List<string>();
-                    continue;
-                }
-
-                var recipients = string.IsNullOrWhiteSpace(notification.TargetRole)
-                    ? activeUsers
-                    : activeUsers.Where(user => string.Equals(
-                        QMSApplication.Data.TeamSetupService.Role(user.Role),
-                        QMSApplication.Data.TeamSetupService.Role(notification.TargetRole),
-                        StringComparison.OrdinalIgnoreCase)).ToList();
-
-                var acknowledged = statuses
-                    .Where(status => status.NotificationId == notification.Id && status.IsAcknowledged)
-                    .Select(status => status.Username)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                UnacknowledgedUsernames[notification.Id] = recipients
-                    .Where(user => !acknowledged.Contains(user.Username))
-                    .Select(user => $"{user.FullName} ({user.Username})")
-                    .OrderBy(name => name)
-                    .ToList();
-            }
-
-            return Page();
-        }
-
-        public async Task<IActionResult> OnPostDeleteAsync(long id)
-        {
-            if (!IsAdminOrManager())
-            {
-                return RedirectToPage("/Notifications");
-            }
-
-            var notification = await _db.Notifications
-                .FirstOrDefaultAsync(x => x.Id == id);
-
-            if (notification == null)
-            {
-                return NotFound();
-            }
-
-            _db.Notifications.Remove(notification);
-
-            await _db.SaveChangesAsync();
-
-            return RedirectToPage();
-        }
-        public async Task<IActionResult> OnPostTogglePublishAsync(long id)
-        {
-            if (!IsAdminOrManager())
-            {
-                return RedirectToPage("/Notifications");
-            }
-
-            var notification = await _db.Notifications
-                .FirstOrDefaultAsync(x => x.Id == id);
-
-            if (notification == null)
-            {
-                return NotFound();
-            }
-
-            notification.IsPublished = !notification.IsPublished;
-            notification.UpdatedAtUtc = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-
-            return RedirectToPage();
-        }
+        Response.Headers["Cache-Control"] = "no-store";
+        var actor = await Actor();
+        if (actor == null) return RedirectToPage("/Login");
+        if (!NotificationReportService.CanTrack(actor)) return RedirectToPage("/AccessDenied");
+        CanManage = CanWrite(actor);
+        Notifications = CanManage ? await db.Notifications.AsNoTracking().OrderByDescending(x => x.NotificationDateUtc).ToListAsync()
+            : (await new NotificationReportService(db).Build(actor)).Notifications;
+        return Page();
+    }
+    public async Task<IActionResult> OnGetAcknowledgementsAsync(long id, long? departmentId = null, long? teamId = null)
+    {
+        Response.Headers["Cache-Control"] = "no-store";
+        var actor = await Actor();
+        if (actor == null) return new UnauthorizedResult();
+        if (!NotificationReportService.CanTrack(actor)) return StatusCode(403);
+        var report = await new NotificationReportService(db).Build(actor, id, departmentId, teamId);
+        if (report.Forbidden) return StatusCode(403);
+        return Partial("_NotificationAcknowledgementsPopup", new AcknowledgementPopup(report,AccessService.Role(actor)=="Admin",id,departmentId,teamId));
+    }
+    public async Task<IActionResult> OnPostDeleteAsync(long id)
+    {
+        if (!CanWrite(await Actor())) return RedirectToPage("/AccessDenied");
+        var notification = await db.Notifications.FirstOrDefaultAsync(x => x.Id == id);
+        if (notification == null) return NotFound();
+        db.Notifications.Remove(notification); await db.SaveChangesAsync(); return RedirectToPage();
+    }
+    public async Task<IActionResult> OnPostTogglePublishAsync(long id)
+    {
+        if (!CanWrite(await Actor())) return RedirectToPage("/AccessDenied");
+        var notification = await db.Notifications.FirstOrDefaultAsync(x => x.Id == id);
+        if (notification == null) return NotFound();
+        notification.IsPublished = !notification.IsPublished; notification.UpdatedAtUtc=DateTime.UtcNow;
+        await db.SaveChangesAsync(); return RedirectToPage();
     }
 }

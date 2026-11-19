@@ -45,10 +45,11 @@ public sealed class AccessPageFilter : IAsyncPageFilter
             "mdedit"
         }.Contains(page) && !AccessService.CanCreate(user)) || (page == "mdimport" && role is not ("Admin" or "Manager")) || (page == "importhistory" && role is not ("Admin" or "Manager")) || (new[]
         {
-            "notificationadmin",
             "notificationcreate",
             "notificationedit"
         }.Contains(page) && role is not ("Admin" or "Manager"));
+        if (page == "notificationacknowledgements" && role is not ("Admin" or "Manager" or "Team Lead")) denied = true;
+        if (page == "notificationadmin" && role is not ("Admin" or "Manager" or "Team Lead")) denied = true;
         var handler = context.HandlerMethod?.Name ?? "";
         if (role == "Guest" && HttpMethods.IsPost(context.HttpContext.Request.Method) && !handler.Contains("Logout") && !(page == "notifications" && handler.Contains("Acknowledge")))
             denied = true;

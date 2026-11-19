@@ -21,13 +21,7 @@ public class MyTeamModel : PageModel
     public Dictionary<long, long> Memberships { get; private set; } = new();
     public Dictionary<long, string> TeamNames { get; private set; } = new();
     public Dictionary<long, List<PortalUser>> TeamMembers { get; private set; } = new();
-    public List<MDEntity> Records { get; private set; } = new();
     public List<TeamAuditEvent> Audits { get; private set; } = new();
-    [BindProperty(SupportsGet = true)] public string? Search { get; set; }
-    [BindProperty(SupportsGet = true)] public bool OnlyUnassigned { get; set; } = true;
-    [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
-    public int RecordCount { get; private set; }
-    public int PageCount => Math.Max(1, (RecordCount + 49) / 50);
     public string UserName(long id) => Users.FirstOrDefault(x => x.Id == id)?.FullName ?? $"Inactive / unavailable #{id}";
     public bool Owns(long teamId) => Teams.Any(x => x.Id == teamId);
     private async Task<IActionResult?> Authorize()
@@ -55,12 +49,6 @@ public class MyTeamModel : PageModel
         if (IsAdmin) Departments = await _db.Departments.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
         if (IsAdmin)
         {
-            var query = _db.MDRecords.AsNoTracking().AsQueryable();
-            if (OnlyUnassigned) query = query.Where(x => x.TeamId == null);
-            var term = Search?.Trim();
-            if (!string.IsNullOrEmpty(term)) query = query.Where(x => x.RecordID.Contains(term) || (x.DeliverableName != null && x.DeliverableName.Contains(term)));
-            RecordCount = await query.CountAsync(); PageNumber = Math.Clamp(PageNumber, 1, PageCount);
-            Records = await query.OrderBy(x => x.Id).Skip((PageNumber - 1) * 50).Take(50).ToListAsync();
             Audits = await _db.TeamAuditEvents.AsNoTracking().OrderByDescending(x => x.Id).Take(50).ToListAsync();
         }
     }
@@ -73,7 +61,7 @@ public class MyTeamModel : PageModel
         var error = await change();
         if (error != null) { ModelState.AddModelError("", error); await Load(); return Page(); }
         TempData["TeamSuccess"] = "Change saved.";
-        return RedirectToPage(new { Search, OnlyUnassigned, PageNumber });
+        return RedirectToPage();
     }
     public Task<IActionResult> OnPostCreateAsync(string? teamName, long? departmentId) => Change(() => _setup.Create(_actor!.Username, teamName ?? "", departmentId));
     public Task<IActionResult> OnPostDepartmentAsync(long teamId, long? departmentId, Guid version) => Change(() => _setup.SetDepartment(_actor!.Username, teamId, departmentId, version));
@@ -81,5 +69,4 @@ public class MyTeamModel : PageModel
     public Task<IActionResult> OnPostManagerAsync(long teamId, long managerId, bool remove, Guid version) => Change(() => _setup.SetManager(_actor!.Username, teamId, managerId, remove, version));
     public Task<IActionResult> OnPostMemberAsync(long memberId, long destinationId, long? expectedSourceId, string? reason) => Change(() => _setup.MoveMember(_actor!.Username, memberId, destinationId, expectedSourceId, reason));
     public Task<IActionResult> OnPostRemoveAsync(long memberId, long expectedTeamId, string? reason) => Change(() => _setup.RemoveMember(_actor!.Username, memberId, expectedTeamId, reason));
-    public Task<IActionResult> OnPostMapAsync(long recordId, long? teamId, Guid version) => Change(() => _setup.MapDeliverable(_actor!.Username, recordId, teamId, version));
 }

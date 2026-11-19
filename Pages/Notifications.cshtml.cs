@@ -26,14 +26,7 @@ namespace QMSApplication.Pages
                 return RedirectToPage("/Login");
             }
 
-            var notifications = await _db.Notifications
-                .AsNoTracking()
-                .Where(x =>
-                    x.IsPublished &&
-                    (
-                        string.IsNullOrEmpty(x.TargetRole) ||
-                        x.TargetRole == userRole
-                    ))
+            var notifications = await QMSApplication.Security.NotificationReportService.Relevant(_db, userRole)
                 .OrderByDescending(x => x.NotificationDateUtc)
                 .ToListAsync();
 
@@ -74,14 +67,8 @@ namespace QMSApplication.Pages
                 return RedirectToPage("/Login");
             }
 
-            var notification = await _db.Notifications
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.IsPublished &&
-                    (
-                        string.IsNullOrEmpty(x.TargetRole) ||
-                        x.TargetRole == userRole
-                    ));
+            var notification = await QMSApplication.Security.NotificationReportService.Relevant(_db, userRole)
+                .SingleOrDefaultAsync(x => x.Id == id);
 
             if (notification == null)
             {

@@ -1,237 +1,38 @@
 ﻿@page
 @model QMSApplication.Pages.NotificationAdminModel
-
-@{
-    ViewData["Title"] = "Notification Management";
-    Layout = "_PortalLayout";
-}
-
-<div style="padding:30px;">
-
-    <h1>Notification Management</h1>
-
-    <p>
-        Admin and Manager notification management.
-    </p>
-
-    <a href="/NotificationCreate"
-       style="display:inline-block;
-        padding:10px 16px;
-        background:#1f4e79;
-        color:white;
-        text-decoration:none;
-        border-radius:5px;
-        margin-bottom:20px;">
-        + Create Notification
-    </a>
-
-    <hr />
-
-    @if (Model.Notifications.Count == 0)
-    {
-        <p>No notifications found.</p>
-    }
+@{ViewData["Title"]="Notification management";Layout="_PortalLayout";}
+<div class="card p-4">
+    <h1 class="h3">Manage Notifications</h1>
+    <p class="text-muted">Every published notification requires acknowledgement. Click Track acknowledgements to view member responses.</p>
+    @if(Model.CanManage){<div class="mb-4"><a asp-page="/NotificationCreate" class="btn btn-primary">Create notification</a></div>}
+    @if(Model.Notifications.Count==0){<p>No notifications are available within your scope.</p>}
     else
     {
-        <table style="width:100%;
-            border-collapse:collapse;
-            margin-top:20px;">
-
-            <thead>
-                <tr>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Title
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Priority
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Mandatory
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Published
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Read
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Acknowledged
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Not Acknowledged By
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Date
-                    </th>
-
-                    <th style="border:1px solid #ddd;
-                        padding:10px;">
-                        Action
-                    </th>
-
-                </tr>
-            </thead>
-
-            <tbody>
-
-                @foreach (var notification in Model.Notifications)
-                {
-                    <tr>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @notification.Title
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @notification.Priority
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @(notification.IsMandatory ? "Yes" : "No")
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @(notification.IsPublished ? "Yes" : "No")
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @(notification.IsRead
-                                ? "Read"
-                                : "Unread")
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @(notification.IsAcknowledged
-                                ? "Acknowledged"
-                                : "Not Acknowledged")
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px; min-width:240px;">
-                            @if (!notification.IsPublished)
-                            {
-                                <span>Not published</span>
-                            }
-                            else if (!notification.IsMandatory)
-                            {
-                                <span>Not required</span>
-                            }
-                            else if (Model.UnacknowledgedUsernames.TryGetValue(notification.Id, out var pendingUsers) && pendingUsers.Count > 0)
-                            {
-                                <ul style="margin:0; padding-left:20px;">
-                                    @foreach (var pendingUser in pendingUsers)
-                                    {
-                                        <li>@pendingUser</li>
-                                    }
-                                </ul>
-                            }
-                            else
-                            {
-                                <span>Everyone acknowledged</span>
-                            }
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;">
-                            @notification.NotificationDateUtc
-                            .ToLocalTime()
-                            .ToString("dd-MMM-yyyy HH:mm")
-                        </td>
-
-                        <td style="border:1px solid #ddd;
-                            padding:10px;
-                            white-space:nowrap;">
-
-                            <!-- Edit -->
-
-                            <a href="/NotificationEdit?id=@notification.Id"
-                               style="color:#123a72;
-                                font-weight:bold;
-                                text-decoration:none;
-                                margin-right:12px;">
-                                Edit
-                            </a>
-
-                            <!-- Delete -->
-
-                            <form method="post"
-                                  asp-page-handler="Delete"
-                                  style="display:inline;"
-                                  onsubmit="return confirm('Are you sure you want to delete this notification?');">
-
-                                <input type="hidden"
-                                       name="id"
-                                       value="@notification.Id" />
-
-                                <button type="submit"
-                                        style="background:#c62828;
-                                    color:white;
-                                    border:none;
-                                    padding:6px 10px;
-                                    border-radius:4px;
-                                    cursor:pointer;">
-                                    Delete
-                                </button>
-
-                            </form>
-
-                            <!-- Publish / Unpublish -->
-
-                            <form method="post"
-                                  asp-page-handler="TogglePublish"
-                                  style="display:inline;
-                                margin-left:8px;">
-
-                                <input type="hidden"
-                                       name="id"
-                                       value="@notification.Id" />
-
-                                <button type="submit"
-                                        style="background:@(notification.IsPublished ? "#777" : "#2e7d32");
-                                    color:white;
-                                    border:none;
-                                    padding:6px 10px;
-                                    border-radius:4px;
-                                    cursor:pointer;">
-
-                                    @(notification.IsPublished
-                                        ? "Unpublish"
-                                        : "Publish")
-
-                                </button>
-
-                            </form>
-
-                        </td>
-
-                    </tr>
-                }
-
-            </tbody>
-
-        </table>
+        <div class="table-responsive"><table class="table table-striped align-middle"><thead><tr><th>Title</th><th>Published</th><th>Audience</th><th>Date (UTC)</th><th>Actions</th></tr></thead><tbody>
+        @foreach(var notice in Model.Notifications)
+        {
+            <tr><td>@notice.Title</td><td>@(notice.IsPublished?"Yes":"No")</td><td>@(string.IsNullOrWhiteSpace(notice.TargetRole)?"All users":notice.TargetRole)</td><td>@notice.NotificationDateUtc.ToString("dd MMM yyyy HH:mm")</td><td>
+                <div class="d-flex flex-wrap gap-2">
+                    @if(notice.IsPublished){<button type="button" class="btn btn-sm btn-outline-primary" data-acknowledgements-url="@Url.Page("/NotificationAdmin", "Acknowledgements", new { id = notice.Id })">Track acknowledgements</button>}
+                    @if(Model.CanManage)
+                    {
+                        <a asp-page="/NotificationEdit" asp-route-id="@notice.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="post" asp-page-handler="TogglePublish"><input type="hidden" name="id" value="@notice.Id"/><button class="btn btn-sm btn-outline-secondary">@(notice.IsPublished?"Unpublish":"Publish")</button></form>
+                        <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this notification?');"><input type="hidden" name="id" value="@notice.Id"/><button class="btn btn-sm btn-outline-danger">Delete</button></form>
+                    }
+                </div>
+            </td></tr>
+        }
+        </tbody></table></div>
     }
-
 </div>
+<dialog id="acknowledgements-dialog" class="qms-ack-dialog" aria-labelledby="acknowledgements-heading">
+    <div class="d-flex justify-content-between align-items-center gap-3 border-bottom p-3"><h2 id="acknowledgements-heading" class="h4 mb-0">Notification acknowledgements</h2><button type="button" class="btn btn-outline-secondary" data-close-acknowledgements aria-label="Close acknowledgements popup">Close</button></div>
+    <div id="acknowledgements-body" class="p-3" aria-live="polite"></div>
+</dialog>
+<noscript><p class="alert alert-info mt-3">Enable JavaScript to open the acknowledgement popup.</p></noscript>
+<style>
+.qms-ack-dialog{width:min(1120px,94vw);max-width:94vw;max-height:88vh;padding:0;border:1px solid #d8e0eb;border-radius:12px;color:#102c54;box-shadow:0 20px 60px #0005;overflow:auto}
+.qms-ack-dialog::backdrop{background:rgba(10,25,45,.55)}
+</style>
+@section Scripts {<script src="~/js/notification-acknowledgements.js" asp-append-version="true"></script>}
