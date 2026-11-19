@@ -11,6 +11,7 @@ builder.Services.AddScoped<QMSApplication.Security.DemoRegistrationService>();
 builder.Services.Configure<QMSApplication.Security.RegistrationEmailOptions>(builder.Configuration.GetSection("RegistrationEmail"));
 builder.Services.AddScoped<QMSApplication.Security.IRegistrationEmailSender, QMSApplication.Security.SmtpRegistrationEmailSender>();
 builder.Services.AddScoped<QMSApplication.Security.RegistrationOtpService>();
+builder.Services.AddScoped<QMSApplication.Security.PasswordRecoveryOtpService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<QMSApplication.Data.TeamSetupService>();
 builder.Services.AddDbContext<QMSPortalDbContext>(options =>

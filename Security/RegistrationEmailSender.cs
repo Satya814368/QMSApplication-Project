@@ -20,6 +20,7 @@ public interface IRegistrationEmailSender
     bool IsDemo => false;
     string? DemoCode => null;
     Task SendAsync(string recipient, string code, CancellationToken cancellationToken = default);
+    Task SendPasswordResetAsync(string recipient, string code, CancellationToken cancellationToken = default);
 }
 public sealed class RegistrationEmailDeliveryException : Exception { }
 
@@ -45,8 +46,13 @@ public sealed class SmtpRegistrationEmailSender : IRegistrationEmailSender
                 (string.IsNullOrEmpty(o.Username) == string.IsNullOrEmpty(o.Password));
         }
     }
-    public async Task SendAsync(string recipient, string code, CancellationToken cancellationToken = default)
+    public Task SendAsync(string recipient, string code, CancellationToken cancellationToken = default)
+        => SendCoreAsync(recipient, code, false, cancellationToken);
+    public Task SendPasswordResetAsync(string recipient, string code, CancellationToken cancellationToken = default)
+        => SendCoreAsync(recipient, code, true, cancellationToken);
+    private async Task SendCoreAsync(string recipient, string code, bool recovery, CancellationToken cancellationToken)
     {
+        if (recovery && IsDemo) throw new RegistrationEmailDeliveryException();
         if (!IsConfigured) throw new RegistrationEmailDeliveryException();
         if (IsDemo)
         {
@@ -60,8 +66,8 @@ public sealed class SmtpRegistrationEmailSender : IRegistrationEmailSender
             using var message = new MailMessage();
             message.From = new MailAddress(o.FromAddress, o.FromName);
             message.To.Add(new MailAddress(recipient));
-            message.Subject = "Your registration verification code";
-            message.Body = $"Your Project Management Tool registration code is: {code}\n\nIt expires in 5 minutes. Do not share it. If you did not request this registration, ignore this email.\n\nEmail verification is followed by Admin approval before you can sign in.";
+            message.Subject = recovery ? "Your password reset verification code" : "Your registration verification code";
+            message.Body = recovery ? $"Your Project Management Tool password reset code is: {code}\n\nIt expires in 5 minutes. Do not share it. If you did not request a reset, ignore this email." : $"Your Project Management Tool registration code is: {code}\n\nIt expires in 5 minutes. Do not share it. If you did not request this registration, ignore this email.\n\nEmail verification is followed by Admin approval before you can sign in.";
             using var client = new SmtpClient(o.Host, o.Port) { EnableSsl = true, UseDefaultCredentials = false, DeliveryMethod = SmtpDeliveryMethod.Network };
             if (!string.IsNullOrEmpty(o.Username)) client.Credentials = new NetworkCredential(o.Username, o.Password);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

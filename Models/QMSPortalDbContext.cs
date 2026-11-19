@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace QMSApplication.Models
 {
@@ -28,10 +28,17 @@ namespace QMSApplication.Models
         public DbSet<Department> Departments { get; set; } = null!;
         public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; } = null!;
         public DbSet<RegistrationChallenge> RegistrationChallenges { get; set; } = null!;
+        public DbSet<PasswordRecoveryChallenge> PasswordRecoveryChallenges { get; set; } = null!;
         protected override void OnModelCreating(
     ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<PasswordRecoveryChallenge>(b => {
+                b.Property(x => x.Id).ValueGeneratedNever();
+                b.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+                b.HasIndex(x => x.LastSentAtUtc);
+                b.HasOne<PortalUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            });
             modelBuilder.Entity<RegistrationChallenge>(b => {
                 b.Property(x => x.Id).ValueGeneratedNever();
                 b.Property(x => x.Version).IsConcurrencyToken();

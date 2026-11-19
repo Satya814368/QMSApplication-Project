@@ -1,26 +1,23 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using QMSApplication.Security;
-
 namespace QMSApplication.Pages;
 public class ForgotPasswordModel : PageModel
 {
-    private readonly AccountService _accounts;
-    public ForgotPasswordModel(AccountService accounts) => _accounts = accounts;
-    [BindProperty]
-    public string? UsernameOrEmail { get; set; }
-
-    public string? Message { get; set; }
-
-    public void OnGet()
-    {
-    }
-
+    private readonly PasswordRecoveryOtpService _otp;
+    public ForgotPasswordModel(PasswordRecoveryOtpService otp) => _otp = otp;
+    [BindProperty] public string? Email { get; set; }
+    public string? Error { get; set; }
+    public void OnGet() { Response.Headers["Cache-Control"] = "no-store"; }
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!string.IsNullOrWhiteSpace(UsernameOrEmail))
-            await _accounts.RequestReset(UsernameOrEmail);
-        Message = "If an eligible account matches, the request is available to Admin. Contact Admin to verify your identity and obtain a single-use reset link.";
-        return Page();
+        OnGet();
+        if (!_otp.Ready) { Error = "Email delivery is not configured. Contact the administrator."; return Page(); }
+        if (string.IsNullOrWhiteSpace(Email) || Email.Length > 200) { Error = "Enter your registered email address."; return Page(); }
+        var owner = PasswordRecoveryOtpService.NewOwner();
+        HttpContext.Session.SetString("PasswordRecoveryOwner", owner);
+        var id = await _otp.Start(Email, owner);
+        HttpContext.Session.SetString("PasswordRecoveryChallenge", id.ToString());
+        return RedirectToPage("/VerifyPasswordOtp");
     }
 }

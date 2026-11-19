@@ -15,7 +15,7 @@ public sealed class AccessPageFilter : IAsyncPageFilter
         {
             "login",
             "register", "verifyregistration",
-            "forgotpassword",
+            "forgotpassword", "verifypasswordotp",
             "resetpassword",
             "error",
             "privacy",
