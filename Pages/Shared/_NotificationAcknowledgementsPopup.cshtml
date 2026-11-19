@@ -1,0 +1,36 @@
+@model QMSApplication.Pages.NotificationAdminModel.AcknowledgementPopup
+@if (Model.Report.Selected != null)
+{
+    <h3 class="h5">@Model.Report.Selected.Title</h3>
+}
+<p class="text-muted">@(Model.IsAdmin ? "Select a department or team to view its members." : "Only members of the teams you manage or lead are shown.") Counts include active, approved recipients.</p>
+<form method="get" action="@Url.Page("/NotificationAdmin", "Acknowledgements")" data-acknowledgement-filters class="row g-3 mb-4">
+    <input type="hidden" name="id" value="@Model.Id" />
+    @if (Model.IsAdmin)
+    {
+        <div class="col-md-6"><label for="ack-department" class="form-label">Department</label><select name="departmentId" id="ack-department" class="form-select">
+            <option value="" selected="@(!Model.DepartmentId.HasValue)">All departments</option><option value="0" selected="@(Model.DepartmentId == 0)">No department</option>
+            @foreach (var department in Model.Report.Departments) { <option value="@department.Id" selected="@(Model.DepartmentId==department.Id)">@department.Name</option> }
+        </select></div>
+    }
+    <div class="col-md-6"><label for="ack-team" class="form-label">Team</label><select name="teamId" id="ack-team" class="form-select"><option value="" selected="@(!Model.TeamId.HasValue)">@(Model.IsAdmin ? "All teams" : "All my teams")</option>
+        @foreach (var team in Model.Report.Teams) { <option value="@team.Id" selected="@(Model.TeamId==team.Id)">@team.Name</option> }
+    </select></div>
+    <div class="col-12"><button class="btn btn-primary">Apply filters</button><button type="button" class="btn btn-outline-secondary ms-2" data-acknowledgements-url="@Url.Page("/NotificationAdmin", "Acknowledgements", new { id = Model.Id })">Clear filters</button></div>
+</form>
+@if (Model.Report.Error != null) { <div class="alert alert-warning" role="alert">@Model.Report.Error</div> }
+else if (Model.Report.Selected == null) { <p>This notification is no longer available.</p> }
+else
+{
+    <div class="d-flex flex-wrap gap-3 mb-3"><strong>Recipients: @Model.Report.Recipients.Count</strong><span class="text-success">Acknowledged: @Model.Report.Acknowledged</span><span class="text-danger">Not acknowledged: @Model.Report.Pending</span></div>
+    @if (Model.Report.Recipients.Count == 0) { <p>No eligible recipients match these filters.</p> }
+    else
+    {
+        <div class="table-responsive"><table class="table table-striped align-middle"><thead><tr><th>Name / username</th><th>Role</th><th>Department</th><th>Team</th><th>Acknowledgement</th><th>Acknowledged at (UTC)</th></tr></thead><tbody>
+        @foreach (var person in Model.Report.Recipients)
+        {
+            <tr><td>@person.FullName <small class="d-block text-muted">@person.Username</small></td><td>@person.Role</td><td>@person.Department</td><td>@person.Team</td><td><span class="badge @(person.IsAcknowledged?"bg-success":"bg-warning text-dark")">@(person.IsAcknowledged?"Acknowledged":"Not acknowledged")</span></td><td>@(person.AcknowledgedAtUtc?.ToString("dd MMM yyyy HH:mm")??"—")</td></tr>
+        }
+        </tbody></table></div>
+    }
+}

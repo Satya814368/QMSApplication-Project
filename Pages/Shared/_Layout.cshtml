@@ -69,7 +69,7 @@
                 }
                 <p class="qms-nav-label qms-nav-divider">Updates</p>
                 <a asp-page="/Notifications" class="qms-nav-link @(section == "notifications" ? "is-active" : "")" aria-current="@(section == "notifications" ? "page" : null)"><partial name="_NavIcon" model='@("bell")' /><span>Notifications</span></a>
-                @if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase))
+                @if (new[] { "Admin", "Manager", "Team Lead" }.Contains(QMSApplication.Data.TeamSetupService.Role(role)))
                 {
                     <a asp-page="/NotificationAdmin" class="qms-nav-link @(section == "notificationadmin" ? "is-active" : "")" aria-current="@(section == "notificationadmin" ? "page" : null)"><partial name="_NavIcon" model='@("settings")' /><span>Manage Notifications</span></a>
                 }

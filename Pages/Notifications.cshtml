@@ -25,15 +25,12 @@
         {
             var notification = item.Notification;
 
-            <div class="notification-card
-                @(notification.IsMandatory ? "mandatory" : "")">
+            <div class="notification-card">
 
                 <div class="notification-header">
                     <h2>@notification.Title</h2>
 
-                    <span class="priority">
-                        @notification.Priority
-                    </span>
+
                 </div>
 
                 <div class="notification-message">
@@ -53,20 +50,19 @@
                         @(item.IsRead ? "Read" : "Unread")
                     </span>
 
-                    @if (notification.IsMandatory)
+                    @if (!item.IsAcknowledged)
                     {
                         <span class="mandatory-label">
-                            Mandatory Read
+                            Acknowledgement required
                         </span>
                     }
 
                 </div>
 
-                @if (notification.IsMandatory &&
-                     !item.IsAcknowledged)
+                @if (!item.IsAcknowledged)
                 {
                     <div class="acknowledgement-warning">
-                        This notification must be acknowledged.
+                        This notification must be acknowledged before continuing.
                     </div>
 
                     <form method="post"
@@ -124,7 +120,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
-    .notification-card.mandatory {
+    .notification-card {
         border-left: 5px solid #d9534f;
     }
 
@@ -139,13 +135,6 @@
         margin: 0;
     }
 
-    .priority {
-        background-color: #123a72;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
 
     .notification-message {
         margin-top: 15px;

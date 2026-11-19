@@ -469,9 +469,6 @@ namespace QMSApplication.Migrations
                     b.Property<bool>("IsAcknowledged")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsMandatory")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<bool>("IsPublished")
                         .HasColumnType("tinyint(1)");
 
@@ -484,11 +481,6 @@ namespace QMSApplication.Migrations
 
                     b.Property<DateTime>("NotificationDateUtc")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
 
                     b.Property<DateTime?>("ReadAtUtc")
                         .HasColumnType("datetime(6)");

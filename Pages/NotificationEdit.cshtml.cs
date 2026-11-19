@@ -23,11 +23,7 @@ public string Title { get; set; } = string.Empty;
 [BindProperty]
 public string Message { get; set; } = string.Empty;
 
-[BindProperty]
-public string Priority { get; set; } = "Normal";
 
-[BindProperty]
-public bool IsMandatory { get; set; }
 
 [BindProperty]
 public bool IsPublished { get; set; }
@@ -62,8 +58,7 @@ return NotFound();
 Id = notification.Id;
 Title = notification.Title;
 Message = notification.Message;
-Priority = notification.Priority;
-IsMandatory = notification.IsMandatory;
+
 IsPublished = notification.IsPublished;
 TargetRole = notification.TargetRole;
 
@@ -92,6 +87,9 @@ nameof(Message),
 "Message is required.");
 }
 
+if (!string.IsNullOrWhiteSpace(TargetRole) && !QMSApplication.Security.NotificationReportService.TargetRoles.Contains(TargetRole))
+    ModelState.AddModelError(nameof(TargetRole), "Choose a valid target role.");
+
 if (!ModelState.IsValid)
 {
 return Page();
@@ -107,8 +105,6 @@ return NotFound();
 
 notification.Title = Title.Trim();
 notification.Message = Message.Trim();
-notification.Priority = Priority;
-notification.IsMandatory = IsMandatory;
 notification.IsPublished = IsPublished;
 notification.TargetRole = string.IsNullOrWhiteSpace(TargetRole)
 ? null

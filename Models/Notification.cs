@@ -18,12 +18,6 @@ namespace QMSApplication.Models
 
         public DateTime NotificationDateUtc { get; set; }
 
-        [Required]
-        [MaxLength(20)]
-        public string Priority { get; set; } = "Normal";
-
-        public bool IsMandatory { get; set; }
-
         public bool IsPublished { get; set; }
 
         [MaxLength(50)]
