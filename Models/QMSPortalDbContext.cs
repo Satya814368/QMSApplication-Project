@@ -28,6 +28,9 @@ namespace QMSApplication.Models
         public DbSet<TeamMembership> TeamMemberships { get; set; } = null!;
         public DbSet<TeamAuditEvent> TeamAuditEvents { get; set; } = null!;
         public DbSet<Department> Departments { get; set; } = null!;
+        public DbSet<UserPreference> UserPreferences { get; set; } = null!;
+        public DbSet<WorkspaceSetting> WorkspaceSettings { get; set; } = null!;
+        public DbSet<SettingsAuditEvent> SettingsAuditEvents { get; set; } = null!;
         public DbSet<TimeEntry> TimeEntries { get; set; } = null!;
         public DbSet<TimeEntryAudit> TimeEntryAudits { get; set; } = null!;
 
@@ -39,6 +42,12 @@ namespace QMSApplication.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<UserPreference>(b => {
+                b.HasIndex(x => x.UserId).IsUnique();
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<SettingsAuditEvent>().HasIndex(x => x.AtUtc);
 
             // Timesheets: task timers and manager-entered meetings.
             modelBuilder.Entity<TimeEntry>(b =>
