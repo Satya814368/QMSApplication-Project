@@ -1,0 +1,18 @@
+@page
+@model QMSApplication.Pages.MyProfileTeamModel
+@{ ViewData["Title"] = "My Team & Department"; }
+<div class="qms-profile-page">
+    <div class="qms-profile-page-heading"><div><h1 class="h3">My Team &amp; Department</h1><p class="text-muted mb-0">Your team assignments and points of contact.</p></div><a class="btn btn-outline-secondary" asp-page="/MyProfile">My Profile</a></div>
+    <section class="card p-4 mb-3"><h2 class="h5">My department</h2><p class="mb-0">@(Model.Profile.Department ?? "No department assigned. Contact Admin to update your assignment.")</p></section>
+    @if (Model.Profile.Teams.Count == 0)
+    { <div class="alert alert-info">You do not currently have a personal team assignment. Contact your Manager or Admin if an assignment is needed.</div> }
+    @foreach (var team in Model.Profile.Teams)
+    {
+        <section class="card p-4 mb-3"><h2 class="h5">@team.Name</h2><dl class="qms-profile-fields mb-0">
+            <div><dt>Team department</dt><dd>@(team.Department ?? "Not assigned")</dd></div>
+            <div><dt>Team Lead</dt><dd>@(string.IsNullOrWhiteSpace(team.Lead) ? "Not assigned" : team.Lead)</dd></div>
+            <div><dt>Manager(s)</dt><dd>@(team.Managers.Count == 0 ? "Not assigned" : string.Join(", ", team.Managers))</dd></div>
+        </dl></section>
+    }
+    <p class="text-muted small">Assignments are view-only here. Authorized staff manage them in My Team and Manage Users. Admin access to other teams does not create a personal team assignment.</p>
+</div>

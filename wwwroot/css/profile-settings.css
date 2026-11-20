@@ -1,0 +1,15 @@
+.qms-profile-menu{position:relative;flex-shrink:0}
+.qms-profile-menu .qms-profile-trigger{display:flex;background:transparent;border:0;border-left:1px solid var(--qms-line,#dce4f1);color:inherit;font:inherit;cursor:pointer;padding:4px 0 4px 12px;border-radius:6px;min-height:42px}
+.qms-profile-trigger:hover{background:#f2f6fc}
+.qms-profile-trigger:focus-visible{outline:3px solid #6999ed;outline-offset:3px}
+.qms-profile-chevron{color:#687b97;font-size:16px;margin:0 5px}
+.qms-profile-dropdown{min-width:240px;max-width:calc(100vw - 24px);border:1px solid #dce4f1;border-radius:12px;box-shadow:0 16px 40px #18345426;padding:8px 0;z-index:1100}
+.qms-profile-dropdown .dropdown-item{padding:10px 18px;font-size:.9rem;white-space:normal}
+.qms-profile-page{width:100%;max-width:960px;margin:0 auto}
+.qms-profile-page-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+.qms-profile-avatar{width:58px;height:58px;font-size:24px;flex-shrink:0}
+.qms-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-bottom:24px}
+.qms-profile-fields dt{color:#677b98;font-size:.8rem;font-weight:500;margin-bottom:6px}
+.qms-profile-fields dd{margin:0;overflow-wrap:anywhere}
+.qms-profile-password{max-width:640px}
+@media(max-width:575px){.qms-profile-fields{grid-template-columns:1fr;gap:18px}.qms-profile-menu .qms-profile-trigger{display:flex;padding-left:8px}.qms-profile-dropdown{min-width:220px}.qms-profile-chevron{margin-left:0}}

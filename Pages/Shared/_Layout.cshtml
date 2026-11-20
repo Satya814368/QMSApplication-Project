@@ -6,7 +6,7 @@
     var displayName = Context.Session.GetString("LoggedInUser");
     if (string.IsNullOrWhiteSpace(displayName)) displayName = username ?? "User";
     var role = Context.Session.GetString("UserRole") ?? "User";
-    var authPage = new[] { "login", "register", "forgotpassword", "verifyregistration", "resetpassword" }.Contains(key);
+    var authPage = new[] { "login", "register", "forgotpassword", "verifyregistration", "verifypasswordotp", "resetpassword" }.Contains(key);
     var signedIn = !string.IsNullOrWhiteSpace(username) && !authPage;
     var title = ViewData["Title"]?.ToString() ?? key switch
     {
@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="~/css/portal-shell.css" asp-append-version="true" />
 <style>.qms-guidelines-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;flex-shrink:0}.qms-guidelines-dot[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="~/css/notification-reader.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/profile-settings.css" asp-append-version="true" />
 </head>
 <body class="qms-app qms-page-@key @(signedIn ? "qms-signed-in" : "qms-public")">
     <a href="#main-content" class="qms-skip-link">Skip to page content</a>
@@ -92,8 +93,7 @@
                 </form>
                 <div class="qms-header-actions">
                     @if (key != "error") { <partial name="_NotificationMenu" /> }
-                    <div class="qms-profile" role="group" aria-label="Signed in as @displayName, @role" title="@displayName (@role)"><span class="qms-avatar" aria-hidden="true">@(displayName.Trim().FirstOrDefault().ToString().ToUpperInvariant())</span><span class="qms-profile-copy"><strong>@displayName</strong><small>@role</small></span></div>
-                    <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="qms-logout-form"><button type="submit" class="qms-icon-button qms-logout" title="Log out"><partial name="_NavIcon" model='@("logout")' /><span>Logout</span></button></form>
+                    <partial name="_ProfileMenu" />
                 </div>
             </header>
             <main id="main-content" class="qms-content" tabindex="-1">

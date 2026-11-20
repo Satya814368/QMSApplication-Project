@@ -25,7 +25,7 @@ namespace QMSApplication.Filters
             PageHandlerExecutionDelegate next)
         {
             var page = context.ActionDescriptor.ViewEnginePath.Trim('/').ToLowerInvariant();
-            if (new[] { "login", "register", "verifyregistration", "forgotpassword", "resetpassword", "error", "privacy", "index", "index2", "accessdenied" }.Contains(page) || context.HandlerMethod?.Name?.Contains("Logout") == true)
+            if (new[] { "login", "register", "verifyregistration", "forgotpassword", "verifypasswordotp", "resetpassword", "error", "privacy", "index", "index2", "accessdenied" }.Contains(page) || context.HandlerMethod?.Name?.Contains("Logout") == true)
             { await next(); return; }
             // GETs render the existing page so pending notices can appear as a modal over it.
             // Other mutations remain blocked until the recipient explicitly acknowledges every notice.

@@ -15,7 +15,7 @@ public sealed class AccessPageFilter : IAsyncPageFilter
         {
             "login",
             "register", "verifyregistration",
-            "forgotpassword",
+            "forgotpassword", "verifypasswordotp",
             "resetpassword",
             "error",
             "privacy",
@@ -51,7 +51,7 @@ public sealed class AccessPageFilter : IAsyncPageFilter
         if (page == "notificationacknowledgements" && role is not ("Admin" or "Manager" or "Team Lead")) denied = true;
         if (page == "notificationadmin" && role is not ("Admin" or "Manager" or "Team Lead")) denied = true;
         var handler = context.HandlerMethod?.Name ?? "";
-        if (role == "Guest" && HttpMethods.IsPost(context.HttpContext.Request.Method) && !handler.Contains("Logout") && !(page == "notifications" && (handler.Contains("Acknowledge") || handler.Contains("Read"))))
+        if (role == "Guest" && HttpMethods.IsPost(context.HttpContext.Request.Method) && !handler.Contains("Logout") && page != "changepassword" && !(page == "notifications" && (handler.Contains("Acknowledge") || handler.Contains("Read"))))
             denied = true;
         if (denied)
         {
