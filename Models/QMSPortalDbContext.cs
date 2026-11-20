@@ -28,6 +28,8 @@ namespace QMSApplication.Models
         public DbSet<TeamMembership> TeamMemberships { get; set; } = null!;
         public DbSet<TeamAuditEvent> TeamAuditEvents { get; set; } = null!;
         public DbSet<Department> Departments { get; set; } = null!;
+        public DbSet<TimeEntry> TimeEntries { get; set; } = null!;
+        public DbSet<TimeEntryAudit> TimeEntryAudits { get; set; } = null!;
 
         // Password reset and email OTP
         public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; } = null!;
@@ -37,6 +39,21 @@ namespace QMSApplication.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Timesheets: task timers and manager-entered meetings.
+            modelBuilder.Entity<TimeEntry>(b =>
+            {
+                b.HasIndex(x => new { x.UserId, x.StartUtc });
+                b.HasIndex(x => x.TargetId);
+                b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Target).WithMany().HasForeignKey(x => x.TargetId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<TimeEntryAudit>(b =>
+            {
+                b.HasIndex(x => x.EntryId);
+            });
 
             // Forgot Password OTP
             modelBuilder.Entity<PasswordRecoveryChallenge>(b =>
