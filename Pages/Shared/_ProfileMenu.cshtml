@@ -1,0 +1,21 @@
+@{
+    var profileName = Context.Session.GetString("LoggedInUser");
+    if (string.IsNullOrWhiteSpace(profileName)) profileName = Context.Session.GetString("Username") ?? "User";
+    var profileRole = Context.Session.GetString("UserRole") ?? "User";
+}
+<div class="dropdown qms-profile-menu">
+    <button id="profile-menu-button" type="button" class="qms-profile qms-profile-trigger" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for @profileName" title="Profile settings">
+        <span class="qms-avatar" aria-hidden="true">@(profileName.Trim().FirstOrDefault().ToString().ToUpperInvariant())</span>
+        <span class="qms-profile-copy"><strong>@profileName</strong><small>@profileRole</small></span>
+        <span class="qms-profile-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end qms-profile-dropdown" aria-labelledby="profile-menu-button">
+        <li class="px-3 py-2"><strong class="d-block text-break">@profileName</strong><small class="text-muted">@profileRole</small></li>
+        <li><hr class="dropdown-divider" /></li>
+        <li><a class="dropdown-item" asp-page="/MyProfile">My Profile</a></li>
+        <li><a class="dropdown-item" asp-page="/ChangePassword">Change Password</a></li>
+        <li><a class="dropdown-item" asp-page="/MyProfileTeam">My Team &amp; Department</a></li>
+        <li><hr class="dropdown-divider" /></li>
+        <li><form method="post" asp-page="/Dashboard" asp-page-handler="Logout"><button class="dropdown-item text-danger" type="submit">Logout</button></form></li>
+    </ul>
+</div>

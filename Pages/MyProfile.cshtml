@@ -1,0 +1,19 @@
+@page
+@model QMSApplication.Pages.MyProfileModel
+@{ ViewData["Title"] = "My Profile"; }
+<div class="qms-profile-page">
+    <div class="qms-profile-page-heading"><div><h1 class="h3">My Profile</h1><p class="text-muted mb-0">Your account and contact details.</p></div><a class="btn btn-outline-primary" asp-page="/ChangePassword">Change password</a></div>
+    <section class="card p-4">
+        <div class="d-flex align-items-center gap-3 mb-4"><span class="qms-avatar qms-profile-avatar" aria-hidden="true">@(Model.Profile.FullName.Trim().FirstOrDefault().ToString().ToUpperInvariant())</span><div><h2 class="h4 mb-1">@Model.Profile.FullName</h2><span class="badge bg-primary">@Model.Profile.Role</span></div></div>
+        <dl class="qms-profile-fields">
+            <div><dt>Full name</dt><dd>@Model.Profile.FullName</dd></div>
+            <div><dt>Username</dt><dd>@Model.Profile.Username</dd></div>
+            <div><dt>Registered email</dt><dd>@(string.IsNullOrWhiteSpace(Model.Profile.Email) ? "Not provided" : Model.Profile.Email)</dd></div>
+            <div><dt>Mobile number</dt><dd>@(string.IsNullOrWhiteSpace(Model.Profile.MobileNumber) ? "Not provided" : Model.Profile.MobileNumber)</dd></div>
+            <div><dt>Role</dt><dd>@Model.Profile.Role</dd></div>
+            <div><dt>Department</dt><dd>@(Model.Profile.Department ?? "Not assigned")</dd></div>
+        </dl>
+        <p class="text-muted small mb-0">Contact Admin if your details need correction. Role and department changes are managed by authorized staff.</p>
+    </section>
+    <a asp-page="/MyProfileTeam" class="btn btn-link ps-0 mt-3">View my team &amp; department →</a>
+</div>
