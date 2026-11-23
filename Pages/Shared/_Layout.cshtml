@@ -1,3 +1,6 @@
+@using Microsoft.EntityFrameworkCore
+@inject QMSApplication.Models.QMSPortalDbContext ThemeDb
+@inject QMSApplication.Security.AccessService ThemeAccess
 @{
     var page = (ViewContext.RouteData.Values["page"]?.ToString() ?? Context.Request.Path.Value ?? "").TrimEnd('/');
     var key = page.Trim('/').ToLowerInvariant();
@@ -8,6 +11,26 @@
     var role = Context.Session.GetString("UserRole") ?? "User";
     var authPage = new[] { "login", "register", "forgotpassword", "verifyregistration", "verifypasswordotp", "resetpassword" }.Contains(key);
     var signedIn = !string.IsNullOrWhiteSpace(username) && !authPage;
+    var theme = "Light";
+    if (signedIn && key != "error" && key != "accessdenied")
+    {
+        var themeActor = await ThemeAccess.Current(Context);
+        if (themeActor != null)
+        {
+            try
+            {
+                var storedTheme = await ThemeDb.UserPreferences.AsNoTracking().Where(p => p.UserId == themeActor.Id)
+                    .Select(p => p.Theme).FirstOrDefaultAsync(Context.RequestAborted);
+                theme = QMSApplication.Models.PortalTheme.Normalize(storedTheme) ?? "Light";
+            }
+            catch (MySqlConnector.MySqlException ex) when (ex.Number == 1146)
+            {
+                // Older databases can use the rest of the portal before installing Settings.
+            }
+        }
+    }
+    var themePreference = theme.ToLowerInvariant();
+    var colorMode = theme == "Dark" ? "dark" : "light";
     var title = ViewData["Title"]?.ToString() ?? key switch
     {
         "md" => "Milestones & Deliverables", "mdedit" => "Edit Deliverable", "mdview" => "View Deliverable",
@@ -31,11 +54,11 @@
     };
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-pmt-theme="@themePreference" data-pmt-color="@colorMode" data-bs-theme="@colorMode">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#102c54" />
+    <meta name="theme-color" content="@(colorMode == "dark" ? "#111317" : "#102c54")" />
     <title>@title · i-ray IT Solutions</title>
     <link rel="icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -44,6 +67,9 @@
 <style>.qms-guidelines-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;flex-shrink:0}.qms-guidelines-dot[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="~/css/notification-reader.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/profile-settings.css" asp-append-version="true" />
+@if (theme == "System") { <script src="~/js/pmt-theme.js" asp-append-version="true"></script> }
+@if (key == "manageusers") { <link rel="stylesheet" href="~/css/manage-users.css" asp-append-version="true" /> }
+<link rel="stylesheet" href="~/css/pmt-themes.css" asp-append-version="true" />
 </head>
 <body class="qms-app qms-page-@key @(signedIn ? "qms-signed-in" : "qms-public")">
     <a href="#main-content" class="qms-skip-link">Skip to page content</a>

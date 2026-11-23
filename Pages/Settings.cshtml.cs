@@ -28,6 +28,7 @@ public class SettingsModel : PageModel
         CurrentUser = u;
         Section = Sections.Contains(section ?? "") ? section! : "profile";
         Preferences = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id) ?? new UserPreference { UserId = u.Id };
+        Preferences.Theme = PortalTheme.Normalize(Preferences.Theme) ?? "Light";
         Workspace = await db.WorkspaceSettings.AsNoTracking().ToDictionaryAsync(x => x.Key, x => x.Value);
         if (Section == "audit" && IsAdmin) AuditEvents = await db.SettingsAuditEvents.AsNoTracking().OrderByDescending(x => x.AtUtc).Take(75).ToListAsync();
         return null;
@@ -53,13 +54,14 @@ public class SettingsModel : PageModel
         return "Profile saved.";
     });
     public Task<IActionResult> OnPostPreferencesAsync(string theme, string language, string dateFormat, bool taskAlerts, bool approvalAlerts, bool emailAlerts) => Finish("appearance", async () => {
-        if (!new[]{"Light","Dark","System"}.Contains(theme) || !new[]{"English"}.Contains(language) || !new[]{"dd-MM-yyyy","MM/dd/yyyy","yyyy-MM-dd"}.Contains(dateFormat)) return "Invalid preference selection.";
+        var selectedTheme = PortalTheme.Normalize(theme);
+        if (selectedTheme == null || !new[]{"English"}.Contains(language) || !new[]{"dd-MM-yyyy","MM/dd/yyyy","yyyy-MM-dd"}.Contains(dateFormat)) return "Invalid preference selection.";
         var pref = await db.UserPreferences.FirstOrDefaultAsync(x => x.UserId == CurrentUser.Id);
         if (pref == null) { pref = new UserPreference { UserId = CurrentUser.Id }; db.UserPreferences.Add(pref); }
         var before = $"{pref.Theme}|{pref.Language}|{pref.DateFormat}|{pref.TaskAlerts}|{pref.ApprovalAlerts}|{pref.EmailAlerts}";
-        pref.Theme = theme; pref.Language = language; pref.DateFormat = dateFormat; pref.TaskAlerts = taskAlerts; pref.ApprovalAlerts = approvalAlerts; pref.EmailAlerts = emailAlerts;
-        Audit("UserPreferences", before, $"{theme}|{language}|{dateFormat}|{taskAlerts}|{approvalAlerts}|{emailAlerts}");
-        await db.SaveChangesAsync(); return "Preferences saved. Notification delivery and theme application require integration with their respective modules.";
+        pref.Theme = selectedTheme; pref.Language = language; pref.DateFormat = dateFormat; pref.TaskAlerts = taskAlerts; pref.ApprovalAlerts = approvalAlerts; pref.EmailAlerts = emailAlerts;
+        Audit("UserPreferences", before, $"{selectedTheme}|{language}|{dateFormat}|{taskAlerts}|{approvalAlerts}|{emailAlerts}");
+        await db.SaveChangesAsync(); return "Preferences saved. Your theme has been applied.";
     });
     private async Task<string> SaveAdminSettings(string prefix, Dictionary<string,string> changes)
     {

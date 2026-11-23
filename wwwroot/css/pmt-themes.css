@@ -1,0 +1,47 @@
+/* Dark variables are scoped to the shared portal, with no color changes in Light. */
+html[data-pmt-color="dark"] {
+    color-scheme: dark;
+    --pmt-bg: #101216; --pmt-surface: #191c21; --pmt-surface-alt: #20242c;
+    --pmt-input: #12151a; --pmt-link: #9cc2ff; --pmt-success: #85d7af;
+    --pmt-warning: #f8cc82; --pmt-danger: #ff9aad;
+    --qms-bg: var(--pmt-bg); --qms-ink: #f0f2f7; --qms-muted: #b5bfce;
+    --qms-line: #3c4656; --qms-navy: #171a20; --qms-navy-deep: #0d0f12;
+    --qms-blue: #2864b9;
+    --bs-body-bg: var(--pmt-surface); --bs-body-color: var(--qms-ink); --bs-border-color: var(--qms-line);
+    --bs-secondary-color: var(--qms-muted); --bs-tertiary-bg: var(--pmt-surface-alt);
+    --bs-primary-text-emphasis: var(--pmt-link); --bs-success-text-emphasis: var(--pmt-success);
+    --bs-warning-text-emphasis: var(--pmt-warning); --bs-danger-text-emphasis: var(--pmt-danger);
+    --bs-link-color: var(--pmt-link); --bs-link-hover-color: #c8dcff;
+}
+[data-pmt-color="dark"] .qms-app :is(.qms-topbar,.qms-footer,.qms-public-header,.qms-form-card,.qms-notification-panel,.qms-skip-link,
+    .card,.chart-section,.filter-section,.table-section,.notification-card,.guideline-card,.welcome-box,.coming-soon-box,
+    .login-box,.register-box,.forgot-box,.forgot-password-box,.qms-language-section,#progress-form > fieldset,.table-container,
+    .modal-content,.qms-notice-reader,.dropdown-menu) {
+    background: var(--pmt-surface); color: var(--qms-ink); border-color: var(--qms-line);
+}
+[data-pmt-color="dark"] .qms-app :is(.card-header,.card-footer,.qms-notice-full-message,.qms-notice-reader-footer,.qms-avatar,
+    .qms-global-search,.qms-footer-product,.qms-page-mdview .value,.language-row,.qms-task-summary,.qms-step-number) {
+    background: var(--pmt-surface-alt); color: var(--qms-ink); border-color: var(--qms-line);
+}
+[data-pmt-color="dark"] .qms-app :is(.qms-global-search input,.qms-global-search button,.form-control,.form-select) {
+    color: var(--qms-ink); background-color: var(--pmt-input); border-color: var(--qms-line);
+}
+[data-pmt-color="dark"] .qms-app :is(.qms-global-search input,.form-control)::placeholder { color: var(--qms-muted); }
+[data-pmt-color="dark"] .qms-app :is(.form-label,.text-muted,.qms-company-name,.qms-notice-reader-help,.qms-notice-eyebrow,.qms-notice-card p,.qms-notice-card time) { color: var(--qms-muted) !important; }
+[data-pmt-color="dark"] .qms-app :is(.qms-notice-card,.qms-notice-reader-header) { border-color: var(--qms-line); }
+[data-pmt-color="dark"] .qms-app .qms-notice-reader::before { background: var(--pmt-surface); border-color: var(--qms-line); }
+[data-pmt-color="dark"] .qms-app a:not(.btn):not(.qms-nav-link):not(.qms-brand):not(.dropdown-item):not(.mu-stat) { color: var(--pmt-link); }
+[data-pmt-color="dark"] .qms-app :is(.qms-icon-button:hover,.qms-profile-trigger:hover,.dropdown-item:hover,.dropdown-item:focus) { color: var(--qms-ink); background: var(--pmt-surface-alt); }
+[data-pmt-color="dark"] .qms-app :is(.btn-primary,.save-button,.apply-button,.filter-button,.acknowledge-button) { color: #fff; }
+[data-pmt-color="dark"] .qms-app :is(.btn-secondary,.cancel-button) { background: var(--pmt-surface-alt); border-color: var(--qms-line); color: var(--qms-ink); }
+[data-pmt-color="dark"] .qms-app :is(.btn-outline-secondary,.btn-outline-primary,.btn-outline-danger) { --bs-btn-color: var(--qms-ink); --bs-btn-border-color: var(--qms-line); --bs-btn-hover-bg: var(--pmt-surface-alt); --bs-btn-hover-color: var(--qms-ink); --bs-btn-hover-border-color: var(--qms-muted); color: var(--qms-ink); border-color: var(--qms-line); }
+[data-pmt-color="dark"] .qms-app :is(.text-danger,.btn-outline-danger,.field-validation-error) { color: var(--pmt-danger) !important; }
+[data-pmt-color="dark"] .qms-app :is(.bg-white,.bg-light) { background-color: var(--pmt-surface) !important; color: var(--qms-ink) !important; }
+[data-pmt-color="dark"] .qms-app table:not(.table) :is(td,th) { border-color: var(--qms-line); }
+[data-pmt-color="dark"] .qms-app .md-table-container :is(td,th) { color: var(--qms-ink); background-color: var(--pmt-surface); border-color: var(--qms-line); box-shadow: none; }
+.qms-app :is(.mu-filters,.pmt-settings) :is(input,select,textarea):focus-visible { outline: 2px solid var(--pmt-link,#1858b8); outline-offset: 2px; }
+[data-pmt-color="dark"] .qms-app :is(.qms-content > h1,.qms-content > h2,.header,.qms-company-name) { color: var(--qms-ink) !important; }
+[data-pmt-color="dark"] .qms-app .qms-footer { color: var(--qms-muted); }
+[data-pmt-color="dark"] .qms-app .qms-notice-reader-error { color: var(--pmt-danger); background: #331f29; }
+[data-pmt-color="dark"] .qms-app .mu-hero { background: linear-gradient(112deg,#202936,#28384d); }
+[data-pmt-color="dark"] .qms-app .mu-hero .mu-import { color: var(--qms-ink); background: var(--pmt-surface); border-color: var(--qms-line); }

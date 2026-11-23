@@ -1,37 +1,133 @@
 @page
 @model QMSApplication.Pages.ManageUsersModel
 @using QMSApplication.Security
-@{ViewData["Title"]="Manage Users & Roles";}
-<h1 class="h3">Manage Users &amp; Roles</h1><p>Admin only. Approve registrations, assign roles, activate/deactivate accounts. Users reset their own passwords using an email OTP from Forgot password on the sign-in page. For employees who leave, uncheck Active, provide a reason and Save account to block access while preserving their work. Permanently delete only unused accounts. The last active Admin is protected.</p>
-@if(TempData["AccountSuccess"] is string success){<div class="alert alert-success">@success</div>}
-<div asp-validation-summary="All" class="text-danger"></div>
-<div class="card p-3 mb-3"><h2 class="h5">Departments</h2><p>Delete a department only after removing its user and team assignments.</p>
-@foreach (var department in Model.Departments)
-{
-    <details class="border rounded p-2 mb-2"><summary>@department.Name — Delete department</summary>
-    <form method="post" asp-page-handler="DeleteDepartment" class="row g-2 mt-1" onsubmit="return confirm('Permanently delete this department?');">
-        <input type="hidden" name="departmentId" value="@department.Id" />
-        <div class="col-md-5"><label for="delete-department-@department.Id" class="form-label">Type department name: @department.Name</label><input id="delete-department-@department.Id" name="confirmation" class="form-control" required maxlength="120" autocomplete="off" /></div>
-        <div class="col-md-5"><label for="department-reason-@department.Id" class="form-label">Deletion reason</label><input id="department-reason-@department.Id" name="reason" class="form-control" required maxlength="500" /></div>
-        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-danger">Delete department</button></div>
-    </form></details>
-}<form method="post" asp-page-handler="Department" class="d-flex gap-2"><input name="name" class="form-control" maxlength="120" required aria-label="New department name"/><button class="btn btn-primary">Add department</button></form><p>Assign teams to departments in My Team. Managers use assigned-team scope unless you explicitly enable department-wide scope below.</p></div>
-<form method="get" class="d-flex flex-wrap gap-2 mb-3"><input asp-for="Search" class="form-control" style="max-width:320px" placeholder="Username or name"/><label><input asp-for="PendingOnly"/> Pending only</label><button class="btn btn-primary">Search</button><a asp-page="/ImportUsers" class="btn btn-outline-primary">Import pending users</a></form>
-<p>@Model.Total accounts · Page @Model.PageNumber / @Model.Pages</p>
-@foreach(var user in Model.Users){<section class="card p-3 mb-3"><h2 class="h5">@user.FullName <small>(@user.Username)</small></h2>
-<form method="post" asp-page-handler="Save"><input type="hidden" name="userId" value="@user.Id"/><input type="hidden" name="version" value="@user.Version"/><div class="row g-3">
-<div class="col-md-3"><label for="role-@user.Id">Role</label><select id="role-@user.Id" name="role" class="form-select">@foreach(var role in AccountService.Roles){<option selected="@(role==AccessService.Role(user))">@role</option>}</select></div>
-<div class="col-md-3"><label for="dept-@user.Id">Department</label><select id="dept-@user.Id" name="departmentId" class="form-select"><option value="">None</option>@foreach(var department in Model.Departments){<option value="@department.Id" selected="@(department.Id==user.DepartmentId)">@department.Name</option>}</select></div>
-<div class="col-md-6"><label class="me-3"><input type="checkbox" name="approved" value="true" checked="@user.IsApproved"/> Approved</label><label><input type="checkbox" name="active" value="true" checked="@user.IsActive"/> Active</label><label class="d-block"><input type="checkbox" name="departmentScope" value="true" checked="@user.ManagerDepartmentScope"/> Manager: department-wide scope</label></div>
-<div class="col-md-9"><input name="reason" required maxlength="500" placeholder="Reason for approval / role or account change" class="form-control" aria-label="Change reason for @user.Username"/></div><div class="col-md-3"><button class="btn btn-primary">Save account</button></div></div></form>
-<details class="border rounded p-2 mt-3"><summary class="text-danger">Delete user</summary>
-    <p class="mt-2 mb-2">Permanent deletion is available only for accounts without team links, assigned work or recorded history. For a former employee with history, use Active → unchecked → Save account above.</p>
-    <form method="post" asp-page-handler="DeleteUser" class="row g-2" onsubmit="return confirm('Permanently delete this unused user account?');">
-        <input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="version" value="@user.Version" />
-        <div class="col-md-5"><label for="delete-user-@user.Id" class="form-label">Type username: @user.Username</label><input id="delete-user-@user.Id" name="confirmation" class="form-control" required maxlength="100" autocomplete="off" /></div>
-        <div class="col-md-5"><label for="user-delete-reason-@user.Id" class="form-label">Deletion reason</label><input id="user-delete-reason-@user.Id" name="reason" class="form-control" required maxlength="500" /></div>
-        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-danger">Delete user</button></div>
-    </form></details>
-</section>}
-<div class="d-flex gap-2 mb-4">@if(Model.PageNumber>1){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber-1)" class="btn btn-outline-primary">Previous</a>}@if(Model.PageNumber<Model.Pages){<a asp-route-Search="@Model.Search" asp-route-PendingOnly="@Model.PendingOnly" asp-route-PageNumber="@(Model.PageNumber+1)" class="btn btn-outline-primary">Next</a>}</div>
-<details class="card p-3"><summary>Latest 50 account / department audit events (UTC)</summary>@foreach(var audit in Model.Audit){<p class="mt-2">@audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm") · @audit.Username · @audit.Action</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">@audit.DetailsJson</pre>}</details>
+@{
+    ViewData["Title"] = "Manage Users & Roles";
+    var filters = Model.FilterRoute(Model.PageNumber);
+    var departmentNames = Model.Departments.ToDictionary(d => d.Id, d => d.Name);
+    var stats = new[] { (Label: "All accounts", Count: Model.AccountCount, Status: "", Tone: "all"),
+        (Label: "Active", Count: Model.ActiveCount, Status: "Active", Tone: "active"),
+        (Label: "Pending approval", Count: Model.PendingCount, Status: "Pending", Tone: "pending"),
+        (Label: "Inactive", Count: Model.InactiveCount, Status: "Inactive", Tone: "inactive") };
+}
+<div class="mu-page">
+    <header class="mu-hero">
+        <div><p class="mu-kicker">Access administration</p><h1>Manage Users &amp; Roles</h1><p>Find accounts, review registrations, and manage workspace access.</p></div>
+        <a class="mu-import btn btn-light" asp-page="/ImportUsers"><span aria-hidden="true">↑</span> Import pending users</a>
+    </header>
+
+    @if (TempData["AccountSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="alert alert-danger mu-errors" role="alert"></div> }
+
+    <nav class="mu-stats" aria-label="Filter by account status">
+        @foreach (var stat in stats)
+        {
+            var selected = (Model.StatusFilter ?? "") == stat.Status;
+            <a class="mu-stat" data-tone="@stat.Tone" asp-page="/ManageUsers" asp-all-route-data="@(Model.FilterRoute(1, stat.Status))" aria-current="@(selected ? "true" : null)">
+                <span class="mu-stat-label"><span class="mu-dot" aria-hidden="true"></span>@stat.Label</span><strong>@stat.Count</strong>
+            </a>
+        }
+    </nav>
+
+    <section class="mu-panel" aria-labelledby="mu-directory">
+        <div class="mu-section-head"><div><h2 id="mu-directory">User directory</h2><p>Open an account to edit permissions or manage its status. Users reset passwords by email OTP.</p></div><span class="mu-count">@Model.Total @(Model.Total == 1 ? "result" : "results")</span></div>
+        <form method="get" asp-page="/ManageUsers" class="mu-filters">
+            <div><label for="filter-search">Search accounts</label><input class="form-control" id="filter-search" name="Search" type="search" maxlength="200" value="@Model.Search" placeholder="Name, username, or email" /></div>
+            <div><label for="filter-role">Role</label><select class="form-select" id="filter-role" name="RoleFilter">
+                <option value="">All roles</option>
+                @foreach (var role in AccountService.Roles) { <option value="@role" selected="@(Model.RoleFilter == role)">@role</option> }
+            </select></div>
+            <div><label for="filter-department">Department</label><select class="form-select" id="filter-department" name="DepartmentFilter">
+                <option value="">All departments</option><option value="0" selected="@(Model.DepartmentFilter == 0)">Unassigned</option>
+                @foreach (var department in Model.Departments) { <option value="@department.Id" selected="@(Model.DepartmentFilter == department.Id)">@department.Name</option> }
+            </select></div>
+            <div><label for="filter-status">Account status</label><select class="form-select" id="filter-status" name="StatusFilter">
+                <option value="">All statuses</option>
+                @foreach (var stat in stats.Where(s => s.Status != "")) { <option value="@stat.Status" selected="@(Model.StatusFilter == stat.Status)">@stat.Label</option> }
+            </select></div>
+            <div class="mu-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-outline-secondary" asp-page="/ManageUsers">Clear</a></div>
+        </form>
+        @if (Model.Total == 0)
+        {
+            <div class="mu-empty"><h3>No accounts found</h3><p>Try a different search or clear your filters.</p><a asp-page="/ManageUsers">Clear filters</a></div>
+        }
+        else
+        {
+            <div class="mu-column-head mu-directory-grid" aria-hidden="true"><span>Account</span><span>Role</span><span>Department</span><span>Status</span><span></span></div>
+            @foreach (var user in Model.Users)
+            {
+                var display = string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName.Trim();
+                var dept = user.DepartmentId is long id && departmentNames.TryGetValue(id, out var name) ? name : "Unassigned";
+                var status = !user.IsApproved ? "Pending" : user.IsActive ? "Active" : "Inactive";
+                <details class="mu-account" open="@(Model.EditingUserId == user.Id || Model.DeletingUserId == user.Id)">
+                    <summary class="mu-directory-grid mu-account-summary">
+                        <span class="mu-identity"><span class="mu-avatar" aria-hidden="true">@char.ToUpperInvariant(display.FirstOrDefault())</span><span><strong>@display</strong><small>@("@" + user.Username)</small></span></span>
+                        <span class="mu-cell"><small>Role</small><span>@AccessService.Role(user)</span></span>
+                        <span class="mu-cell"><small>Department</small><span>@dept</span></span>
+                        <span class="mu-status" data-tone="@status.ToLowerInvariant()"><span class="mu-dot" aria-hidden="true"></span>@(status == "Pending" ? "Pending approval" : status)</span>
+                        <span class="mu-edit-label">Manage <span aria-hidden="true">⌄</span></span>
+                    </summary>
+                    <div class="mu-account-body">
+                        @if (!string.IsNullOrWhiteSpace(user.Email)) { <p class="mu-email"><strong>Email</strong> · @user.Email</p> }
+                        <form method="post" asp-page="/ManageUsers" asp-page-handler="Save" asp-all-route-data="filters" class="mu-edit">
+                            <input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="version" value="@user.Version" />
+                            <div><label for="role-@user.Id">Role</label><select id="role-@user.Id" name="role" class="form-select">
+                                @foreach (var role in AccountService.Roles) { <option value="@role" selected="@(role == AccessService.Role(user))">@role</option> }
+                            </select></div>
+                            <div><label for="dept-@user.Id">Department</label><select id="dept-@user.Id" name="departmentId" class="form-select">
+                                <option value="">Unassigned</option>
+                                @foreach (var department in Model.Departments) { <option value="@department.Id" selected="@(department.Id == user.DepartmentId)">@department.Name</option> }
+                            </select></div>
+                            <div class="mu-access"><span>Account access</span><label><input type="checkbox" name="approved" value="true" checked="@user.IsApproved" /> Approved</label><label><input type="checkbox" name="active" value="true" checked="@user.IsActive" /> Active</label><label><input type="checkbox" name="departmentScope" value="true" checked="@user.ManagerDepartmentScope" /> Manager: department-wide scope</label></div>
+                            <div class="mu-save"><div><label for="reason-@user.Id">Reason for change</label><input id="reason-@user.Id" name="reason" class="form-control" required maxlength="500" placeholder="For example, approved by department lead" /></div><button class="btn btn-primary" type="submit">Save account</button></div>
+                        </form>
+                        <details class="mu-danger" open="@(Model.DeletingUserId == user.Id)"><summary>Delete unused account</summary>
+                            <p>Deletion is permanent and is blocked when an account has linked work or history. For a former employee, uncheck Active above and save.</p>
+                            <form method="post" asp-page="/ManageUsers" asp-page-handler="DeleteUser" asp-all-route-data="filters" class="mu-confirm" onsubmit="return confirm('Permanently delete this unused user account?');">
+                                <input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="version" value="@user.Version" />
+                                <div><label for="confirm-@user.Id">Type @user.Username to confirm</label><input id="confirm-@user.Id" name="confirmation" class="form-control" required maxlength="100" autocomplete="off" /></div>
+                                <div><label for="delete-reason-@user.Id">Deletion reason</label><input id="delete-reason-@user.Id" name="reason" class="form-control" required maxlength="500" /></div>
+                                <button class="btn btn-outline-danger" type="submit">Delete user</button>
+                            </form>
+                        </details>
+                    </div>
+                </details>
+            }
+            <nav class="mu-pagination" aria-label="User directory pagination"><span>Showing @((Model.PageNumber - 1) * ManageUsersModel.PageSize + 1)–@((Model.PageNumber - 1) * ManageUsersModel.PageSize + Model.Users.Count) of @Model.Total</span><div>
+                @if (Model.PageNumber > 1) { <a class="btn btn-sm btn-outline-secondary" asp-page="/ManageUsers" asp-all-route-data="@(Model.FilterRoute(Model.PageNumber - 1))">Previous</a> }
+                <span>Page @Model.PageNumber of @Model.Pages</span>
+                @if (Model.PageNumber < Model.Pages) { <a class="btn btn-sm btn-outline-secondary" asp-page="/ManageUsers" asp-all-route-data="@(Model.FilterRoute(Model.PageNumber + 1))">Next</a> }
+            </div></nav>
+        }
+    </section>
+
+    <details class="mu-panel mu-secondary" open="@(Model.DeletingDepartmentId.HasValue || (ViewContext.HttpContext.Request.Query["handler"] == "Department" && !ViewData.ModelState.IsValid))">
+        <summary><strong>Departments</strong><span>@Model.Departments.Count configured</span></summary>
+        <div class="mu-secondary-body">
+            <p>Assign departments to people and teams before granting department-wide manager access. Remove those assignments before deleting a department.</p>
+            <form method="post" asp-page="/ManageUsers" asp-page-handler="Department" asp-all-route-data="filters" class="mu-add-department">
+                <div><label for="new-department">New department name</label><input id="new-department" name="name" class="form-control" required maxlength="120" /></div><button class="btn btn-primary" type="submit">Add department</button>
+            </form>
+            @foreach (var department in Model.Departments)
+            {
+                <details class="mu-department" open="@(Model.DeletingDepartmentId == department.Id)"><summary>@department.Name <span>· Manage</span></summary>
+                    <form method="post" asp-page="/ManageUsers" asp-page-handler="DeleteDepartment" asp-all-route-data="filters" class="mu-confirm" onsubmit="return confirm('Permanently delete this department?');">
+                        <input type="hidden" name="departmentId" value="@department.Id" />
+                        <div><label for="delete-department-@department.Id">Type @department.Name to confirm</label><input id="delete-department-@department.Id" name="confirmation" class="form-control" required maxlength="120" autocomplete="off" /></div>
+                        <div><label for="department-reason-@department.Id">Deletion reason</label><input id="department-reason-@department.Id" name="reason" class="form-control" required maxlength="500" /></div>
+                        <button class="btn btn-outline-danger" type="submit">Delete department</button>
+                    </form>
+                </details>
+            }
+        </div>
+    </details>
+    <details class="mu-panel mu-secondary"><summary><strong>Recent audit activity</strong><span>Latest @Model.Audit.Count events · UTC</span></summary>
+        <div class="mu-secondary-body">
+            @if (Model.Audit.Count == 0) { <p>No audit events recorded.</p> }
+            @foreach (var audit in Model.Audit)
+            {
+                <details class="mu-department"><summary><strong>@audit.Action</strong><span> · @audit.Username · @audit.TimestampUtc.ToString("yyyy-MM-dd HH:mm")</span></summary><pre class="mu-audit-data">@audit.DetailsJson</pre></details>
+            }
+        </div>
+    </details>
+</div>

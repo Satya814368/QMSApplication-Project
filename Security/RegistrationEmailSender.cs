@@ -77,10 +77,26 @@ public sealed class SmtpRegistrationEmailSender : IRegistrationEmailSender
             timeout.CancelAfter(TimeSpan.FromSeconds(15));
             await client.SendMailAsync(message, timeout.Token);
         }
-        catch (Exception ex) when (ex is SmtpException or InvalidOperationException or IOException or OperationCanceledException or FormatException)
+        catch (Exception ex) when (ex is SmtpException or InvalidOperationException
+    or IOException or OperationCanceledException or FormatException)
         {
-            // Do not log the OTP, SMTP password or pending registration details.
-            _logger.LogWarning("Registration email delivery failed ({FailureType}).", ex.GetType().Name);
+            if (ex is SmtpException smtp)
+            {
+                _logger.LogWarning("SMTP failure: {Status}. {Reason}",
+                    smtp.StatusCode, smtp.Message);
+
+                for (var cause = smtp.InnerException; cause != null; cause = cause.InnerException)
+                {
+                    _logger.LogWarning("SMTP underlying error: {Type}. {Details}",
+                        cause.GetType().Name, cause.Message);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Email delivery failed: {Type}. {Details}",
+                    ex.GetType().Name, ex.Message);
+            }
+
             throw new RegistrationEmailDeliveryException();
         }
     }
