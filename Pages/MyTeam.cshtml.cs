@@ -33,7 +33,7 @@ public class MyTeamModel : PageModel
     }
     private async Task Load()
     {
-        Teams = await _setup.ManagedTeams(_actor!).AsNoTracking().OrderBy(x => x.Name).ToListAsync();
+        Teams = await _setup.ManagedTeams(_actor!).AsNoTracking().Include(t => t.Department).OrderBy(x => x.Name).ToListAsync();
         var ids = Teams.Select(x => x.Id).ToList();
         TeamNames = await _db.Teams.AsNoTracking().ToDictionaryAsync(x => x.Id, x => x.Name);
         Managers = await _db.TeamManagers.AsNoTracking().Where(x => ids.Contains(x.TeamId)).ToListAsync();
