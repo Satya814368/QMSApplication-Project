@@ -302,14 +302,14 @@
 
     @if (TempData["SuccessMessage"] != null)
     {
-        <div style="padding: 10px; margin-bottom: 12px; background: #d4edda; color: #155724; border-radius: 4px;">
+        <div class="md-success" style="padding: 10px; margin-bottom: 12px; background: #d4edda; color: #155724; border-radius: 4px;">
             @TempData["SuccessMessage"]
         </div>
     }
 
     @if (TempData["ErrorMessage"] != null)
     {
-        <div style="padding: 10px; margin-bottom: 12px; background: #f8d7da; color: #721c24; border-radius: 4px;">
+        <div class="md-error" style="padding: 10px; margin-bottom: 12px; background: #f8d7da; color: #721c24; border-radius: 4px;">
             @TempData["ErrorMessage"]
         </div>
     }

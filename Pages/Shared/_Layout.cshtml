@@ -44,7 +44,7 @@
     {
         (Title: "Dashboard", Page: "/Dashboard", Module: "", Key: "dashboard", Icon: "dashboard"),
         (Title: "M & D", Page: "/md", Module: "", Key: "records", Icon: "records"),
-        (Title: "Reports", Page: "/comingsoon", Module: "Reports", Key: "reports", Icon: "chart"),
+        (Title: "Reports", Page: "/Reports", Module: "", Key: "reports", Icon: "chart"),
         (Title: "My Tasks", Page: "/MyTasks", Module: "", Key: "mytasks", Icon: "tasks"),
         (Title: "My Team", Page: "/MyTeam", Module: "", Key: "myteam", Icon: "team"),
         (Title: "Manage Users", Page: "/ManageUsers", Module: "", Key: "manageusers", Icon: "team"),
@@ -54,7 +54,7 @@
     };
 }
 <!DOCTYPE html>
-<html lang="en" data-pmt-theme="@themePreference" data-pmt-color="@colorMode" data-bs-theme="@colorMode">
+<html lang="en" data-pmt-theme="@themePreference" data-pmt-color="@colorMode" data-bs-theme="@colorMode" data-theme-preference="@themePreference" data-theme-effective="@colorMode">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -67,7 +67,7 @@
 <style>.qms-guidelines-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;flex-shrink:0}.qms-guidelines-dot[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="~/css/notification-reader.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/profile-settings.css" asp-append-version="true" />
-@if (theme == "System") { <script src="~/js/pmt-theme.js" asp-append-version="true"></script> }
+<script src="~/js/pmt-theme.js" asp-append-version="true"></script>
 @if (key == "manageusers") { <link rel="stylesheet" href="~/css/manage-users.css" asp-append-version="true" /> }
 @if (key == "myteam") { <link rel="stylesheet" href="~/css/my-team.css" asp-append-version="true" /> }
 <link rel="stylesheet" href="~/css/pmt-themes.css" asp-append-version="true" />

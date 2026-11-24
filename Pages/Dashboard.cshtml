@@ -185,6 +185,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+    // Match canvas text and grid colors to the active portal theme.
+    const dashboardDark = document.documentElement.getAttribute("data-theme-effective") === "dark";
+    const dashboardText = dashboardDark ? "#dbe8f9" : Chart.defaults.color;
+    const dashboardGrid = dashboardDark ? "#40516a" : Chart.defaults.borderColor;
+    Chart.defaults.color = dashboardText;
+    Chart.defaults.borderColor = dashboardGrid;
+
     // Work Completion Status
     const pendingCount = @Model.PendingCount;
     const inProgressCount = @Model.InProgressCount;
@@ -201,7 +208,7 @@
             : ((count / total) * 100).toFixed(1) + "%";
     }
 
-    new Chart(document.getElementById("completionPieChart"), {
+    const completionChart = new Chart(document.getElementById("completionPieChart"), {
         type: "pie",
         data: {
             labels: [
@@ -212,7 +219,10 @@
                 data: [
                     pendingCount, inProgressCount, completedCount,
                     deferredCount, cancelledCount
-                ]
+                ],
+                backgroundColor: ["#64748b", "#3b82f6", "#22c55e", "#f59e0b", "#ef4444"],
+                borderColor: dashboardDark ? "#1b283b" : "#ffffff",
+                borderWidth: 2
             }]
         },
         options: {
@@ -241,7 +251,7 @@
     const milestoneCounts =
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MilestoneCounts));
 
-    new Chart(document.getElementById("completedUGChart"), {
+    const ugChart = new Chart(document.getElementById("completedUGChart"), {
         type: "bar",
         data: {
             labels: milestoneNames,
@@ -284,4 +294,11 @@
             }
         }
     });
+    new MutationObserver(function () {
+        const dark = document.documentElement.getAttribute("data-theme-effective") === "dark";
+        Chart.defaults.color = dark ? "#dbe8f9" : "#666";
+        Chart.defaults.borderColor = dark ? "#40516a" : "rgba(0,0,0,0.1)";
+        completionChart.data.datasets[0].borderColor = dark ? "#1b283b" : "#ffffff";
+        [completionChart, ugChart].forEach(function (chart) { chart.update(); });
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme-effective"] });
 </script>
