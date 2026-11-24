@@ -82,6 +82,7 @@ if (!string.IsNullOrWhiteSpace(TargetRole) && !QMSApplication.Security.Notificat
                 Message = Message.Trim(),
                 NotificationDateUtc = now,
                 IsPublished = IsPublished,
+                Revision = IsPublished ? 0 : null,
                 TargetRole = string.IsNullOrWhiteSpace(TargetRole)
                     ? null
                     : TargetRole,

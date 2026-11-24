@@ -4,8 +4,8 @@
 @{
     var username = Context.Session.GetString("Username");
     var role = Context.Session.GetString("UserRole");
-    var relevant = QMSApplication.Security.NotificationReportService.Relevant(Db,role);
-    var pending = await relevant.CountAsync(n => !Db.NotificationUserStatuses.Any(s => s.NotificationId==n.Id && s.Username==username && s.IsAcknowledged));
+    var pending = string.IsNullOrWhiteSpace(username) ? 0 :
+        await QMSApplication.Security.NotificationReaderService.AwaitingAcknowledgement(Db, username, role).CountAsync();
 }
 <button type="button" class="qms-icon-button" data-open-notification-reader aria-label="Notifications, @pending awaiting acknowledgement" title="Notifications">
     <partial name="_NavIcon" model='@("bell")' />

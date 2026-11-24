@@ -56,31 +56,8 @@ namespace QMSApplication.Filters
                 return;
             }
 
-            var mandatoryNotifications =
-                await QMSApplication.Security.NotificationReportService.Relevant(_db, userRole)
-                    .Select(x => x.Id)
-                    .ToListAsync();
-
-            if (mandatoryNotifications.Count == 0)
-            {
-                await next();
-                return;
-            }
-
-            var acknowledgedNotificationIds =
-                await _db.NotificationUserStatuses
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.Username == username &&
-                        x.IsAcknowledged &&
-                        mandatoryNotifications.Contains(
-                            x.NotificationId))
-                    .Select(x => x.NotificationId)
-                    .ToListAsync();
-
-            var mandatoryPending =
-                mandatoryNotifications.Any(
-                    id => !acknowledgedNotificationIds.Contains(id));
+            var mandatoryPending = await QMSApplication.Security.NotificationReaderService
+                .AwaitingAcknowledgement(_db, username, userRole).AnyAsync();
 
             if (mandatoryPending)
             {

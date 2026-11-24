@@ -20,6 +20,31 @@ namespace QMSApplication.Models
 
         public bool IsPublished { get; set; }
 
+        // Null means this draft has never been published. Zero is the first published version.
+        [ConcurrencyCheck]
+        public int? Revision { get; set; }
+
+        public bool ApplyEdit(string title, string message, string? targetRole, bool isPublished)
+        {
+            if (Title == title && Message == message && TargetRole == targetRole && IsPublished == isPublished)
+                return false;
+
+            var contentChanged = Title != title || Message != message || TargetRole != targetRole;
+            if ((Revision.HasValue || IsPublished) && (contentChanged || (isPublished && !IsPublished)))
+                Revision = (Revision ?? 0) + 1;
+            else if (isPublished || IsPublished)
+                Revision ??= 0;
+
+            Title = title;
+            Message = message;
+            TargetRole = targetRole;
+            IsPublished = isPublished;
+            UpdatedAtUtc = DateTime.UtcNow;
+            return true;
+        }
+
+        public void SetPublication(bool isPublished) => ApplyEdit(Title, Message, TargetRole, isPublished);
+
         [MaxLength(50)]
         public string? TargetRole { get; set; }
 

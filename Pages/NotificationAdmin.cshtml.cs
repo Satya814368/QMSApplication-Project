@@ -44,7 +44,12 @@ public class NotificationAdminModel(QMSPortalDbContext db) : PageModel
         if (!CanWrite(await Actor())) return RedirectToPage("/AccessDenied");
         var notification = await db.Notifications.FirstOrDefaultAsync(x => x.Id == id);
         if (notification == null) return NotFound();
-        notification.IsPublished = !notification.IsPublished; notification.UpdatedAtUtc=DateTime.UtcNow;
-        await db.SaveChangesAsync(); return RedirectToPage();
+        notification.SetPublication(!notification.IsPublished);
+        try { await db.SaveChangesAsync(); }
+        catch (DbUpdateConcurrencyException)
+        {
+            TempData["NotificationConflict"] = "This notification changed while you were working. Review it and try again.";
+        }
+        return RedirectToPage();
     }
 }

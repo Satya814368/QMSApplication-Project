@@ -63,7 +63,10 @@ public sealed class NotificationReportService(QMSPortalDbContext db)
         if (result.Selected == null) return result;
         users = users.Where(u => TargetMatches(result.Selected.TargetRole,u.Role)).ToList();
         var usernames = users.Select(x => x.Username).ToList();
-        var statuses = await db.NotificationUserStatuses.AsNoTracking().Where(x => x.NotificationId == result.Selected.Id && usernames.Contains(x.Username)).ToListAsync();
+        var selectedId = result.Selected.Id;
+        var selectedRevision = result.Selected.Revision ?? 0;
+        var statuses = await db.NotificationUserStatuses.AsNoTracking()
+            .Where(x => x.NotificationId == selectedId && x.Revision == selectedRevision && usernames.Contains(x.Username)).ToListAsync();
         var userIds = users.Select(x => x.Id).ToList();
         var memberships = await db.TeamMemberships.AsNoTracking().Where(x => userIds.Contains(x.UserId) && scopeIds.Contains(x.TeamId)).ToListAsync();
         var managers = await db.TeamManagers.AsNoTracking().Where(x => userIds.Contains(x.UserId) && scopeIds.Contains(x.TeamId)).ToListAsync();

@@ -31,3 +31,20 @@ body.qms-notice-overlay-open{overflow:hidden}
 .qms-notice-reader.is-expanded{position:fixed;inset:0;margin:auto;max-height:88vh;overflow:auto}
 @media(max-width:575px){.qms-notice-reader:not(.is-expanded){width:calc(100vw - 24px);max-width:calc(100vw - 24px)}}
 @media(max-height:420px){.qms-notice-reader:not(.is-expanded){overflow:auto}.qms-notice-reader.has-bell-anchor:not(.is-expanded)::before{display:none}}
+
+.qms-notice-update-badge {
+    display: inline-block;
+    width: fit-content;
+    margin: 0 0 .45rem;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    background: #fff0c2;
+    color: #693b00;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+[data-pmt-color="dark"] .qms-notice-update-badge {
+    background: #493815;
+    color: #ffe1a1;
+}

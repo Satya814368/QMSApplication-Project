@@ -9,10 +9,12 @@
     <div class="qms-notice-preview-list" data-notification-previews></div>
     <section class="qms-notice-expanded" data-notification-detail hidden>
         <button type="button" class="btn btn-sm btn-link ps-0 mb-3" data-notification-back>← All pending notifications</button>
+        <span class="qms-notice-update-badge" data-notification-updated hidden>Notification Updated</span>
         <h3 class="h4" data-notification-title></h3><p class="text-muted small" data-notification-date></p>
         <div class="qms-notice-full-message" data-notification-message tabindex="0"></div>
         <form method="post" asp-page="/Notifications" asp-page-handler="Acknowledge" data-notification-acknowledge class="mt-4">
             <input type="hidden" name="id" value="" />
+            <input type="hidden" name="revision" value="" />
             <button type="submit" class="btn btn-primary" data-notification-ack-button>Acknowledge</button>
         </form>
     </section>

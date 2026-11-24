@@ -4,6 +4,7 @@
     const previews = dialog.querySelector('[data-notification-previews]');
     const detail = dialog.querySelector('[data-notification-detail]');
     const title = dialog.querySelector('[data-notification-title]');
+    const updatedLabel = dialog.querySelector('[data-notification-updated]');
     const date = dialog.querySelector('[data-notification-date]');
     const message = dialog.querySelector('[data-notification-message]');
     const form = dialog.querySelector('[data-notification-acknowledge]');
@@ -12,7 +13,7 @@
     const errorBox = dialog.querySelector('[data-notification-reader-error]');
     const help = dialog.querySelector('[data-notification-reader-help]');
     const count = dialog.querySelector('[data-notification-reader-count]');
-    let pending = [], selected = null, busy = false, refreshing = false, revision = 0, forceOpen = false, opener;
+    let pending = [], selected = null, selectedRevision = null, busy = false, refreshing = false, revision = 0, forceOpen = false, opener;
     // Keep the compact preview attached to the bell as the header or viewport moves.
     function positionPreview() {
         if (!dialog.open || dialog.classList.contains('is-expanded')) return;
@@ -61,7 +62,7 @@
         help.textContent = pending.length ? 'Read and acknowledge your notifications to continue.' : 'No notifications need acknowledgement.';
     }
     function compact() {
-        selected = null; detail.hidden = true; previews.hidden = false; dialog.classList.remove('is-expanded');
+        selected = null; selectedRevision = null; detail.hidden = true; previews.hidden = false; dialog.classList.remove('is-expanded');
         previews.replaceChildren();
         if (!pending.length) previews.append(element('p', 'text-muted py-3', 'You have no pending notifications.'));
         for (const notice of pending) {
@@ -69,6 +70,7 @@
             const heading = element('div', 'qms-notice-card-heading');
             if (!notice.isRead) { const dot = element('span', 'qms-notice-card-dot'); dot.setAttribute('aria-label', 'Unread'); heading.append(dot); }
             heading.append(element('h3', '', notice.title));
+            if (notice.revision > 0) card.append(element('span', 'qms-notice-update-badge', 'Notification Updated'));
             card.append(heading, element('p', '', notice.previewText), element('time', '', dateText(notice.dateUtc)));
             const button = element('button', 'btn btn-sm btn-outline-primary', 'Read more');
             button.type = 'button'; button.addEventListener('click', () => read(notice.id)); card.append(button); previews.append(card);
@@ -87,6 +89,10 @@
         const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options, headers: { Accept: 'application/json', ...options.headers } });
         if (response.redirected || response.status === 401) throw new Error('Your session expired. Sign out and sign in again.');
         if (response.status === 404) { const e = new Error('This notification is no longer available.'); e.missing = true; throw e; }
+        if (response.status === 409) {
+            const e = new Error('This notification was updated. Open it again to review the latest version.');
+            e.updated = true; throw e;
+        }
         if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Unable to load your notification. Please try again.');
         return response.json();
     }
@@ -100,24 +106,30 @@
             const next = result.notifications || [];
             const changed = JSON.stringify(next) !== JSON.stringify(pending);
             pending = next; error(); badge();
-            if (selected && !pending.some(n => n.id === selected)) compact();
+            if (selected !== null && !pending.some(n => n.id === selected && n.revision === selectedRevision)) compact();
             else if (!selected && (changed || forceOpen || !dialog.open)) compact();
             if (pending.length || forceOpen) open(forceOpen);
             else if (dialog.open) close();
         } catch (e) { if (dialog.open || forceOpen) { error(e.message); open(true); } }
         finally { refreshing = false; forceOpen = false; }
     }
-    function postData(id) {
-        return new URLSearchParams({ id: String(id), __RequestVerificationToken: form.querySelector('[name="__RequestVerificationToken"]').value });
+    function postData(id, noticeRevision) {
+        const data = new URLSearchParams({ id: String(id), __RequestVerificationToken: form.querySelector('[name="__RequestVerificationToken"]').value });
+        if (noticeRevision !== undefined) data.set('revision', String(noticeRevision));
+        return data;
     }
     async function read(id) {
         if (busy) return;
         busy = true; revision++; error();
         try {
             const result = await request(dialog.dataset.readUrl, { method: 'POST', body: postData(id) });
-            selected = result.id; const notice = pending.find(n => n.id === id); if (notice) notice.isRead = true;
+            selected = result.id; selectedRevision = result.revision;
+            const notice = pending.find(n => n.id === id && n.revision === selectedRevision);
+            if (notice) notice.isRead = true;
+            updatedLabel.hidden = !(selectedRevision > 0);
             title.textContent = result.title; date.textContent = dateText(result.dateUtc); message.textContent = result.message;
             form.querySelector('[name="id"]').value = String(selected);
+            form.querySelector('[name="revision"]').value = String(selectedRevision);
             previews.hidden = true; detail.hidden = false; dialog.classList.add('is-expanded'); message.focus();
         } catch (e) { error(e.message); if (e.missing) { busy = false; await refresh(); } }
         finally { busy = false; }
@@ -126,12 +138,15 @@
         event.preventDefault(); if (busy || selected === null) return;
         busy = true; revision++; ackButton.disabled = true; ackButton.textContent = 'Acknowledging…'; error();
         try {
-            const result = await request(form.action, { method: 'POST', body: postData(selected) });
+            const result = await request(form.action, { method: 'POST', body: postData(selected, selectedRevision) });
             pending = result.notifications || []; compact();
             document.dispatchEvent(new CustomEvent('notifications:acknowledged', { detail: { pending: pending.length } }));
             if (!pending.length) { close(); if (window.location.pathname.toLowerCase().endsWith('/notifications')) window.location.reload(); }
             else previews.querySelector('button')?.focus();
-        } catch (e) { error(e.message); if (e.missing) { busy = false; compact(); await refresh(); } }
+        } catch (e) {
+            if (e.missing || e.updated) { busy = false; compact(); await refresh(); }
+            if (dialog.open) error(e.message);
+        }
         finally { busy = false; ackButton.disabled = false; ackButton.textContent = 'Acknowledge'; }
     });
     dialog.querySelector('[data-notification-back]').addEventListener('click', () => { if (!busy) { error(); compact(); previews.querySelector('button')?.focus(); } });

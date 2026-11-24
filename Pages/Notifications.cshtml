@@ -13,6 +13,11 @@
         <p>View and acknowledge portal notifications.</p>
     </div>
 
+    @if (TempData["NotificationUpdated"] is string updateMessage)
+    {
+        <p class="alert alert-info" role="status">@updateMessage</p>
+    }
+
     @if (Model.Notifications.Count == 0)
     {
         <div class="empty-message">
@@ -29,6 +34,10 @@
 
                 <div class="notification-header">
                     <h2>@notification.Title</h2>
+                    @if (notification.Revision > 0)
+                    {
+                        <span class="qms-notice-update-badge">Notification Updated</span>
+                    }
 
 
                 </div>
@@ -71,6 +80,8 @@
                         <input type="hidden"
                                name="id"
                                value="@notification.Id" />
+
+                        <input type="hidden" name="revision" value="@(notification.Revision ?? 0)" />
 
                         <button type="submit"
                                 class="acknowledge-button">

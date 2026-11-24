@@ -15,7 +15,12 @@ public class NotificationsModel(QMSPortalDbContext db) : PageModel
         var notices=await NotificationReportService.Relevant(db,actor.Role).OrderByDescending(n=>n.NotificationDateUtc).ToListAsync();
         var ids=notices.Select(n=>n.Id).ToList();
         var statuses=await db.NotificationUserStatuses.AsNoTracking().Where(s=>s.Username==actor.Username && ids.Contains(s.NotificationId)).ToListAsync();
-        Notifications=notices.Select(n=>new NotificationViewModel{Notification=n,IsRead=statuses.Any(s=>s.NotificationId==n.Id && s.IsRead),IsAcknowledged=statuses.Any(s=>s.NotificationId==n.Id && s.IsAcknowledged)}).ToList();
+        var byRevision = statuses.ToLookup(s => (s.NotificationId, s.Revision));
+        Notifications = notices.Select(n =>
+        {
+            var current = byRevision[(n.Id, n.Revision ?? 0)];
+            return new NotificationViewModel { Notification = n, IsRead = current.Any(s => s.IsRead), IsAcknowledged = current.Any(s => s.IsAcknowledged) };
+        }).ToList();
         return Page();
     }
     public async Task<IActionResult> OnGetPendingAsync()
@@ -30,13 +35,25 @@ public class NotificationsModel(QMSPortalDbContext db) : PageModel
         var detail=await new NotificationReaderService(db).Read(actor,id);
         return detail==null?NotFound():new JsonResult(detail);
     }
-    public async Task<IActionResult> OnPostAcknowledgeAsync(long id)
+    public async Task<IActionResult> OnPostAcknowledgeAsync(long id, int revision = 0)
     {
         NoCache();var actor=await Actor();if(actor==null)return RedirectToPage("/Login");
-        if(!await new NotificationReaderService(db).Acknowledge(actor,id))return NotFound();
-        if(Request.Headers.Accept.Any(x=>x?.Contains("application/json",StringComparison.OrdinalIgnoreCase)==true))
+        if (!ModelState.IsValid) return BadRequest();
+        var reader = new NotificationReaderService(db);
+        var json = Request.Headers.Accept.Any(x => x?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
+        var result = await reader.AcknowledgeRevision(actor, id, revision);
+        if (result == NotificationReaderService.AcknowledgementResult.Unavailable) return NotFound();
+        if (result == NotificationReaderService.AcknowledgementResult.Updated)
         {
-            var pending=await new NotificationReaderService(db).Pending(actor);return new JsonResult(new{count=pending.Count,notifications=pending});
+            const string message = "This notification was updated. Review and acknowledge the latest version.";
+            if (json) return new JsonResult(new { error = message }) { StatusCode = 409 };
+            TempData["NotificationUpdated"] = message;
+            return RedirectToPage();
+        }
+        if (json)
+        {
+            var pending = await reader.Pending(actor);
+            return new JsonResult(new { count = pending.Count, notifications = pending });
         }
         return RedirectToPage();
     }

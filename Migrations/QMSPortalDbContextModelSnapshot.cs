@@ -485,6 +485,10 @@ namespace QMSApplication.Migrations
                     b.Property<DateTime?>("ReadAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int?>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
                     b.Property<string>("TargetRole")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
@@ -528,6 +532,9 @@ namespace QMSApplication.Migrations
                     b.Property<DateTime?>("ReadAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -537,6 +544,8 @@ namespace QMSApplication.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NotificationId", "Username", "Revision");
 
                     b.ToTable("NotificationUserStatuses");
                 });

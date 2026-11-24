@@ -103,16 +103,16 @@ if (notification == null)
 return NotFound();
 }
 
-notification.Title = Title.Trim();
-notification.Message = Message.Trim();
-notification.IsPublished = IsPublished;
-notification.TargetRole = string.IsNullOrWhiteSpace(TargetRole)
-? null
-: TargetRole;
-
-notification.UpdatedAtUtc = DateTime.UtcNow;
-
-await _db.SaveChangesAsync();
+var targetRole = string.IsNullOrWhiteSpace(TargetRole) ? null : TargetRole;
+if (notification.ApplyEdit(Title.Trim(), Message.Trim(), targetRole, IsPublished))
+{
+    try { await _db.SaveChangesAsync(); }
+    catch (DbUpdateConcurrencyException)
+    {
+        ModelState.AddModelError(string.Empty, "This notification changed while you were saving. Reload it before trying again.");
+        return Page();
+    }
+}
 
 return RedirectToPage("/NotificationAdmin");
 }
