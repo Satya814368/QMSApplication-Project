@@ -1,0 +1,5 @@
+RISKS & ISSUES - Nov26 source update
+Back up database and working files. Stop application. Run INSTALL_RISKS.sql in MySQL Workbench against the application database before running the updated code. SQL creates two tables; no sample records or changes to existing tables. This is a manual SQL installation, not an EF migration; coordinate future EF migrations to avoid duplicate table creation.
+Build: dotnet build .\QMSApplication.csproj
+Run: dotnet run --project QMSApplication.csproj --launch-profile https
+Test Admin creation of risk and issue, score, owner/team validation, edit, closure, audit and report filters. Test Manager and Team Lead scope, User issue creation and own action updates, Guest no access to risk records. Team and owner required. Optional deliverable link uses numeric database ID. No hard deletion, automated notifications, escalation or risk CSV in this version. Risk thresholds provisional: 1-4 Low, 5-9 Medium, 10-14 High, 15-25 Critical. No live build or database test performed in authoring environment.

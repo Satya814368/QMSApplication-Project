@@ -20,6 +20,7 @@ public class ReportsModel : PageModel
     [BindProperty(SupportsGet = true)] public DateOnly? To { get; set; }
     [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
     public string ScopeLabel { get; private set; } = "";
+    public List<RiskIssue> RiskRows { get; private set; } = new();
     public int Total { get; private set; }
     public int Completed { get; private set; }
     public int Overdue { get; private set; }
@@ -86,6 +87,15 @@ public class ReportsModel : PageModel
         if (From.HasValue && To.HasValue && From > To) { ModelState.AddModelError("", "Start date must not exceed end date."); return Page(); }
         var role = AccessService.Role(actor);
         ScopeLabel = role switch { "Admin" => "All departments", "Manager" => "Authorized teams / department", "Team Lead" => "My team", "User" => "My assigned work", _ => "Read-only deliverables" };
+        if (Section == "risks") {
+            var risks = RiskIssueAccess.Visible(_db, actor).AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(Search)) risks = risks.Where(x => x.Title.Contains(Search) || x.Description.Contains(Search));
+            if (!string.IsNullOrWhiteSpace(Status)) risks = risks.Where(x => x.Status == Status);
+            if (From.HasValue) risks = risks.Where(x => x.DueDate >= From.Value);
+            if (To.HasValue) risks = risks.Where(x => x.DueDate <= To.Value);
+            RiskRows = await risks.OrderByDescending(x => x.Id).ToListAsync();
+            return Page();
+        }
         var today = DateOnly.FromDateTime(DateTime.Today);
         var filtered = Filter(visible);
         Total = await filtered.CountAsync();

@@ -1,0 +1,3 @@
+@model List<QMSApplication.Models.RiskIssue>
+@if(Model.Count == 0){<p class="text-muted mb-0">No authorized risk or issue records found.</p>}
+else {<div class="table-responsive"><table class="table table-striped align-middle"><thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Category</th><th>Score</th><th>Status</th><th>Due</th><th>Action</th></tr></thead><tbody>@foreach(var r in Model){<tr><td><a asp-page="/Risks" asp-route-id="@r.Id">@r.Id</a></td><td>@r.Kind</td><td>@r.Title</td><td>@r.Category</td><td>@(r.Kind == "Risk" ? $"{r.Score} ({r.Severity})" : "—")</td><td>@r.Status</td><td>@r.DueDate.ToString("dd-MMM-yyyy")</td><td>@r.ActionPlan</td></tr>}</tbody></table></div>}

@@ -39,9 +39,15 @@ namespace QMSApplication.Models
         public DbSet<RegistrationChallenge> RegistrationChallenges { get; set; } = null!;
         public DbSet<PasswordRecoveryChallenge> PasswordRecoveryChallenges { get; set; } = null!;
 
+        public DbSet<RiskIssue> RiskIssues { get; set; } = null!;
+        public DbSet<RiskIssueAudit> RiskIssueAudits { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<RiskIssue>().Property(x => x.Version).IsConcurrencyToken();
+            modelBuilder.Entity<RiskIssue>().HasIndex(x => x.TeamId);
+            modelBuilder.Entity<RiskIssueAudit>().HasIndex(x => x.RiskIssueId);
 
             modelBuilder.Entity<UserPreference>(b => {
                 b.HasIndex(x => x.UserId).IsUnique();

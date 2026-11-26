@@ -1,0 +1,26 @@
+@page
+@model QMSApplication.Pages.RisksModel
+@{ ViewData["Title"] = "Risks & Issues"; var r = Model.Edit; var full = Model.CanManage || (r == null && Model.CanReport); }
+<h1 class="h3">Risks &amp; Issues</h1>
+<p class="text-muted">Register risks, mitigation plans and corrective actions. <a asp-page="/Reports" asp-route-Section="risks">View analytics</a></p>
+@if(full || (r != null && r.OwnerId == Model.ActorId && Model.CanReport && r.Status != "Closed")) {
+<div class="card p-3 mb-3"><h2 class="h5">@(r == null ? "New record" : "Update record #" + r.Id)</h2>
+<form method="post" asp-page-handler="Save" class="row g-2">
+<input type="hidden" name="id" value="@(r?.Id ?? 0)"/><input type="hidden" name="version" value="@(r?.Version ?? Guid.Empty)"/>
+@if(full) {
+<div class="col-md-3"><label>Type<select name="kind" class="form-select">@if(Model.CanManage){<option selected="@(r?.Kind == "Risk")">Risk</option>}<option selected="@(r?.Kind == "Issue")">Issue</option></select></label></div>
+<div class="col-md-6"><label class="w-100">Title<input name="title" required maxlength="200" class="form-control" value="@(r?.Title)"/></label></div>
+<div class="col-md-3"><label class="w-100">Category<select name="category" class="form-select">@foreach(var c in Model.Categories){<option selected="@(r?.Category == c)">@c</option>}</select></label></div>
+<div class="col-12"><label class="w-100">Description<textarea name="description" required maxlength="4000" class="form-control">@(r?.Description)</textarea></label></div>
+<div class="col-md-3"><label class="w-100">Team<select name="teamId" required class="form-select"><option value="">Select team</option>@foreach(var t in Model.Teams){<option value="@t.Id" selected="@(r?.TeamId == t.Id)">@t.Name</option>}</select></label></div>
+<div class="col-md-3"><label class="w-100">Owner<select name="ownerId" required class="form-select">@foreach(var o in Model.Owners){<option value="@o.Id" selected="@(r?.OwnerId == o.Id)">@o.FullName (@o.Username)</option>}</select></label></div>
+<div class="col-md-3"><label class="w-100">Due date<input type="date" name="dueDate" required class="form-control" value="@(r?.DueDate.ToString("yyyy-MM-dd"))"/></label></div>
+<div class="col-md-3"><label class="w-100">Deliverable database ID (optional)<input type="number" min="1" name="deliverableId" class="form-control" value="@(r?.DeliverableId)"/></label></div>
+@if(Model.CanManage){<div class="col-md-3"><label>Probability (risk only)<input type="number" name="probability" min="1" max="5" value="@((r?.Probability ?? 0) > 0 ? r!.Probability : 1)" class="form-control"/></label></div><div class="col-md-3"><label>Impact (risk only)<input type="number" name="impact" min="1" max="5" value="@((r?.Impact ?? 0) > 0 ? r!.Impact : 1)" class="form-control"/></label></div>}
+}
+<div class="col-md-3"><label class="w-100">Status<select name="status" class="form-select">@foreach(var s in (Model.CanManage ? new[]{"Open","In Progress","Resolved","Closed"} : r == null ? new[]{"Open"} : new[]{"Open","In Progress","Resolved"})){<option selected="@(r?.Status == s)">@s</option>}</select></label></div>
+<div class="col-12"><label class="w-100">Mitigation / corrective action<textarea name="actionPlan" maxlength="4000" class="form-control">@(r?.ActionPlan)</textarea></label></div>
+<div class="col-12"><button class="btn btn-primary">Save</button> <a asp-page="/Risks" class="btn btn-outline-secondary">New / clear</a></div>
+</form></div>}
+<div class="card p-3"><h2 class="h5">Register (@Model.Rows.Count)</h2><partial name="_RiskRows" model="Model.Rows"/></div>
+@if(Model.History.Count > 0){<div class="card p-3 mt-3"><h2 class="h5">Audit history</h2>@foreach(var h in Model.History){<details><summary>@h.AtUtc.ToString("u") — @h.Actor</summary><p>Before: @h.BeforeJson</p><p>After: @h.AfterJson</p></details>}</div>}
