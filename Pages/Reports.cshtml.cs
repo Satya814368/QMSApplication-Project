@@ -12,7 +12,8 @@ public class ReportsModel : PageModel
     private readonly QMSPortalDbContext _db;
     public ReportsModel(QMSPortalDbContext db) => _db = db;
 
-    [BindProperty(SupportsGet = true)] public string Section { get; set; } = "overview";
+    [BindProperty(SupportsGet = true)]
+    public string? Section { get; set; } = "overview";
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
     [BindProperty(SupportsGet = true)] public string? Status { get; set; }
     [BindProperty(SupportsGet = true)] public DateOnly? From { get; set; }
@@ -77,7 +78,11 @@ public class ReportsModel : PageModel
     {
         var (actor, visible) = await Authorized();
         if (actor == null || visible == null) return RedirectToPage("/Login");
-        if (!Sections.Contains(Section)) Section = "overview";
+        if (string.IsNullOrWhiteSpace(Section) ||
+    !Sections.Contains(Section))
+        {
+            Section = "overview";
+        }
         if (From.HasValue && To.HasValue && From > To) { ModelState.AddModelError("", "Start date must not exceed end date."); return Page(); }
         var role = AccessService.Role(actor);
         ScopeLabel = role switch { "Admin" => "All departments", "Manager" => "Authorized teams / department", "Team Lead" => "My team", "User" => "My assigned work", _ => "Read-only deliverables" };
