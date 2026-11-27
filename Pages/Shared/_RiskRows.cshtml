@@ -1,3 +1,11 @@
+@using Microsoft.EntityFrameworkCore
+@inject QMSApplication.Models.QMSPortalDbContext RiskDb
 @model List<QMSApplication.Models.RiskIssue>
+@{
+ var teamIds = Model.Select(x => x.TeamId).Distinct().ToList();
+ var ownerIds = Model.Select(x => x.OwnerId).Distinct().ToList();
+ var teams = await RiskDb.Teams.AsNoTracking().Where(x => teamIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Name);
+ var owners = await RiskDb.PortalUsers.AsNoTracking().Where(x => ownerIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.FullName);
+}
 @if(Model.Count == 0){<p class="text-muted mb-0">No authorized risk or issue records found.</p>}
-else {<div class="table-responsive"><table class="table table-striped align-middle"><thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Category</th><th>Score</th><th>Status</th><th>Due</th><th>Action</th></tr></thead><tbody>@foreach(var r in Model){<tr><td><a asp-page="/Risks" asp-route-id="@r.Id">@r.Id</a></td><td>@r.Kind</td><td>@r.Title</td><td>@r.Category</td><td>@(r.Kind == "Risk" ? $"{r.Score} ({r.Severity})" : "—")</td><td>@r.Status</td><td>@r.DueDate.ToString("dd-MMM-yyyy")</td><td>@r.ActionPlan</td></tr>}</tbody></table></div>}
+else {<div class="table-responsive"><table class="table table-striped align-middle"><thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Category</th><th>Team</th><th>Owner</th><th>Score</th><th>Status</th><th>Due</th><th>Action</th></tr></thead><tbody>@foreach(var r in Model){<tr><td><a asp-page="/Risks" asp-route-id="@r.Id">@r.Id</a></td><td>@r.Kind</td><td>@r.Title</td><td>@r.Category</td><td>@teams.GetValueOrDefault(r.TeamId, "Unavailable")</td><td>@owners.GetValueOrDefault(r.OwnerId, "Unavailable")</td><td>@if(r.Kind == "Risk"){<span class="badge bg-@(r.Score>=15?"danger":r.Score>=10?"warning":r.Score>=5?"info":"success")">@r.Score (@r.Severity)</span>}else{<span>—</span>}</td><td>@r.Status</td><td>@r.DueDate.ToString("dd-MMM-yyyy")</td><td>@r.ActionPlan</td></tr>}</tbody></table></div>}
