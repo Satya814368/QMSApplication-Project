@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
 using System.Globalization;
+using System.Text.Json;
 
 namespace QMSApplication.Data
 {
@@ -15,13 +16,15 @@ namespace QMSApplication.Data
             _db = db;
         }
 
-        public async Task<int> ImportAsync(IFormFile excelFile, long teamId, string actorUsername)
+        public sealed record SourceCell(int Column, string Header, string Value);
+
+        public async Task<int> ImportAsync(IFormFile excelFile, long teamId, string actorUsername, bool historicalImport = false)
         {
             var actor = await _db.PortalUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Username == actorUsername && x.IsActive && x.IsApproved);
             var access = new QMSApplication.Security.AccessService(_db);
             if (actor == null || QMSApplication.Security.AccessService.Role(actor) is not ("Admin" or "Manager") || !await access.ManagedTeams(actor).AnyAsync(x => x.Id == teamId))
                 throw new InvalidOperationException("You cannot import into that team.");
-            var allowed = await access.Assignees(teamId).ToListAsync();
+            var allowed = historicalImport ? new List<PortalUser>() : await access.Assignees(teamId).ToListAsync();
             var team = await _db.Teams.AsNoTracking().Include(x => x.Department).SingleAsync(x => x.Id == teamId);
             if (excelFile == null || excelFile.Length == 0)
             {
@@ -122,17 +125,10 @@ namespace QMSApplication.Data
             foreach (var row in worksheet.RowsUsed()
                          .Where(r => r.RowNumber() > headerRow))
             {
-                bool hasData =
-                    !string.IsNullOrWhiteSpace(
-                        row.Cell(1).GetString()) ||
-                    !string.IsNullOrWhiteSpace(
-                        row.Cell(2).GetString()) ||
-                    !string.IsNullOrWhiteSpace(
-                        row.Cell(3).GetString()) ||
-                    !string.IsNullOrWhiteSpace(
-                        row.Cell(7).GetString()) ||
-                    !string.IsNullOrWhiteSpace(
-                        row.Cell(13).GetString());
+                // Some historical rows only have an optional field or a date filled in.
+                bool hasData = historicalImport
+                    ? row.CellsUsed().Any(c => !string.IsNullOrWhiteSpace(c.GetString()))
+                    : new[] { 1, 2, 3, 7, 13 }.Any(column => !string.IsNullOrWhiteSpace(row.Cell(column).GetString()));
 
                 if (!hasData)
                 {
@@ -382,8 +378,21 @@ namespace QMSApplication.Data
 
                 record.TeamId = teamId; record.CreatedBy = actorUsername; record.UpdatedBy = actorUsername;
                 record.CreatedAtUtc = DateTime.UtcNow; record.UpdatedAtUtc = DateTime.UtcNow;
-                if (team.Department != null) record.DepartmentName = team.Department.Name;
-                if (!string.IsNullOrWhiteSpace(record.AssignedTo))
+                record.DepartmentName = team.Department?.Name ?? (historicalImport ? "NA" : null);
+                if (historicalImport)
+                {
+                    record.SourceAssignedTo = record.AssignedTo ?? "NA";
+                    record.AssignedTo = null;
+                    record.MilestoneName ??= "NA";
+                    record.DeliverableName ??= "NA";
+                    record.DeliverableType ??= "NA";
+                    record.Status ??= "NA";
+                    record.MilestoneTargetDateSource ??= "NA";
+                    record.DeliverableTargetDateSource ??= "NA";
+                    record.ImportSourceJson = JsonSerializer.Serialize(row.CellsUsed().Select(c =>
+                        new SourceCell(c.Address.ColumnNumber, worksheet.Cell(headerRow, c.Address.ColumnNumber).GetString(), c.GetString())));
+                }
+                else if (!string.IsNullOrWhiteSpace(record.AssignedTo))
                 {
                     var matches = allowed.Where(x => string.Equals(x.Username, record.AssignedTo, StringComparison.OrdinalIgnoreCase) || string.Equals(x.FullName, record.AssignedTo, StringComparison.OrdinalIgnoreCase)).ToList();
                     if (matches.Count != 1) throw new InvalidOperationException("Every assigned person in the import must uniquely match an approved member of the selected team. Prefer usernames.");

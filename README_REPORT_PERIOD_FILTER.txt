@@ -1,0 +1,1 @@
+Based on nov27.zip. Only Pages/Reports.cshtml and Pages/Reports.cshtml.cs changed. Copy those two files to your existing repository on obcober26_2. No SQL required. Build and test before committing. Custom ranges limited to 120 calendar months; global filters still apply. Git metadata, IDE caches and build outputs omitted from this source archive. No compilation performed.

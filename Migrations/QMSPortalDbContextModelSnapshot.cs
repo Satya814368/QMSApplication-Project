@@ -401,6 +401,9 @@ namespace QMSApplication.Migrations
                     b.Property<string>("DeviationReason")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("ImportSourceJson")
+                        .HasColumnType("longtext");
+
                     b.Property<DateOnly?>("MilestoneAchievedDate")
                         .HasColumnType("date");
 
@@ -428,6 +431,9 @@ namespace QMSApplication.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("ScheduleDeviation")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("SourceAssignedTo")
                         .HasColumnType("longtext");
 
                     b.Property<string>("Status")

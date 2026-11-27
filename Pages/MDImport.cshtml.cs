@@ -15,6 +15,7 @@ namespace QMSApplication.Pages
         public List<Team> AvailableTeams { get; set; } = new();
         [BindProperty] public long? TeamId { get; set; }
         public string Message { get; set; } = "";
+        [BindProperty] public bool HistoricalImport { get; set; } = true;
         [BindProperty]
         public IFormFile? ExcelFile { get; set; }
 
@@ -63,7 +64,7 @@ namespace QMSApplication.Pages
             try
             {
                 int importedCount =
-                    await _importer.ImportAsync(ExcelFile, TeamId!.Value, HttpContext.Session.GetString("Username")!);
+                    await _importer.ImportAsync(ExcelFile, TeamId!.Value, HttpContext.Session.GetString("Username")!, HistoricalImport);
                 await transaction.CommitAsync();
 
                 Message =

@@ -387,7 +387,7 @@ namespace QMSApplication.Pages
                     ? x.DeliverableTargetDate.Value.ToString("dd-MM-yyyy")
                     : x.DeliverableTargetDateSource,
 
-                AssignedTo = x.AssignedTo,
+                AssignedTo = x.DisplayAssignedTo,
                 ScheduleDeviation = x.ScheduleDeviation,
                 DeliverableActivity = x.DeliverableActivity,
                 DeviationReason = x.DeviationReason,

@@ -46,6 +46,7 @@ public sealed class SmtpRegistrationEmailSender : IRegistrationEmailSender
                 MailAddress.TryCreate(o.FromAddress, out _) &&
                 (string.IsNullOrEmpty(o.Username) == string.IsNullOrEmpty(o.Password));
         }
+        
     }
     // Registration may remain in demo mode while recovery always uses real email.
     public bool CanSendPasswordReset => SmtpConfigured;

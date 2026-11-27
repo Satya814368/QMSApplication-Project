@@ -35,6 +35,11 @@ namespace QMSApplication.Models
 
 
         public string? AssignedTo { get; set; }
+        public string? SourceAssignedTo { get; set; }
+        public string? ImportSourceJson { get; set; }
+
+        [NotMapped]
+        public string? DisplayAssignedTo => AssignedTo ?? SourceAssignedTo;
 
         public string? ScheduleDeviation { get; set; }
 

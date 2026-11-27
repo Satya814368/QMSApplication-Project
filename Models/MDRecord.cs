@@ -15,6 +15,7 @@
         public string? MilestoneTargetDate { get; set; }
         public string? DeliverableTargetDate { get; set; }
         public string? AssignedTo { get; set; }
+        public string? SourceAssignedTo { get; set; }
         public string? ScheduleDeviation { get; set; }
         public string? DeliverableActivity { get; set; }
         public string? DeviationReason { get; set; }

@@ -116,7 +116,11 @@
 
                 <div class="field">
                     <div class="label">Assigned To</div>
-                    <div class="value">@Model.Record.AssignedTo</div>
+                    <div class="value">@(Model.Record.AssignedTo ?? Model.Record.SourceAssignedTo)</div>
+                    @if (Model.Record.SourceAssignedTo != null)
+                    {
+                        <small class="text-muted">Excel assignee: @(Model.Record.SourceAssignedTo + (Model.Record.AssignedTo == null ? " (historical only)" : ""))</small>
+                    }
                 </div>
 
                 <div class="field">
@@ -159,6 +163,23 @@
                     <div class="value">@Model.Record.UGs</div>
                 </div>
 
+                @if (Model.OriginalExcelCells.Count > 0)
+                {
+                    <details class="mb-3">
+                        <summary>Original Excel values</summary>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead><tr><th scope="col">Column</th><th scope="col">Header</th><th scope="col">Original value</th></tr></thead>
+                                <tbody>
+                                @foreach (var cell in Model.OriginalExcelCells)
+                                {
+                                    <tr><td>@cell.Column</td><td>@cell.Header</td><td>@cell.Value</td></tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                }
                 <a class="back-button" asp-page="/MDTasks" asp-route-id="@Model.DeliverableId">Language tasks &amp; target progress</a>
                 <a class="back-button" href="/MD">
                     Back to M & D

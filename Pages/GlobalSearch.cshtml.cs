@@ -43,6 +43,9 @@ namespace QMSApplication.Pages
                     (x.AssignedTo != null &&
                      x.AssignedTo.Contains(Query)) ||
 
+                    (x.SourceAssignedTo != null &&
+                     x.SourceAssignedTo.Contains(Query)) ||
+
                     (x.Status != null &&
                      x.Status.Contains(Query)))
                 .OrderBy(x => x.Id)

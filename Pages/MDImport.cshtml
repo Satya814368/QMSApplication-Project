@@ -7,8 +7,13 @@
 
 <h2>M&D Excel Import</h2>
 
-<p>Upload records into an authorized owning team. Assigned people must match that team.</p>
+<p>Upload records into an authorized owning team.</p>
 <form method="post" enctype="multipart/form-data"><label asp-for="TeamId">Owning team</label><select asp-for="TeamId" class="form-select mb-3" required><option value="">Select team</option>@foreach (var team in Model.AvailableTeams) { <option value="@team.Id">@team.Name</option> }</select>
+    <div class="form-check mb-3">
+        <input asp-for="HistoricalImport" class="form-check-input" aria-describedby="historical-import-help" />
+        <label asp-for="HistoricalImport" class="form-check-label">Import as historical data</label>
+        <div id="historical-import-help" class="form-text">Keeps assignee names from Excel without assigning work. Blank required fields display as NA. Turn this off for live assignments to approved members of the selected team.</div>
+    </div>
     <div style="margin: 15px 0;">
         <label for="excelFile">
             Select Excel File (.xlsx):

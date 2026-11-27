@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QMSApplication.Models;
+using QMSApplication.Data;
+using System.Text.Json;
 
 namespace QMSApplication.Pages
 {
@@ -16,6 +18,7 @@ namespace QMSApplication.Pages
 
         public MDRecord? Record { get; set; }
         public long DeliverableId { get; set; }
+        public List<MDExcelImporter.SourceCell> OriginalExcelCells { get; private set; } = new();
 
 
         public IActionResult OnGet(string? id)
@@ -33,6 +36,8 @@ namespace QMSApplication.Pages
             if (entity == null) return NotFound();
 
             DeliverableId = entity.Id;
+            if (!string.IsNullOrWhiteSpace(entity.ImportSourceJson))
+                OriginalExcelCells = JsonSerializer.Deserialize<List<MDExcelImporter.SourceCell>>(entity.ImportSourceJson) ?? new();
             // Normalize imported status values
             string status = entity.Status ?? "";
 
@@ -68,8 +73,8 @@ namespace QMSApplication.Pages
                 DeliverableTargetDate =
                     entity.DeliverableTargetDateSource,
 
-                AssignedTo =
-                    entity.AssignedTo,
+                AssignedTo = entity.AssignedTo,
+                SourceAssignedTo = entity.SourceAssignedTo,
 
                 ScheduleDeviation =
                     entity.ScheduleDeviation,
