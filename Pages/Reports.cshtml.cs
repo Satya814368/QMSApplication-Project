@@ -19,6 +19,11 @@ public class ReportsModel : PageModel
     [BindProperty(SupportsGet = true)] public DateOnly? From { get; set; }
     [BindProperty(SupportsGet = true)] public DateOnly? To { get; set; }
     [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
+    [BindProperty(SupportsGet = true)] public string? TrendPeriod { get; set; } = "6";
+    [BindProperty(SupportsGet = true)] public DateOnly? TrendFrom { get; set; }
+    [BindProperty(SupportsGet = true)] public DateOnly? TrendTo { get; set; }
+    public string TrendRange { get; private set; } = "";
+    public string? TrendError { get; private set; }
     public string ScopeLabel { get; private set; } = "";
     public List<RiskIssue> RiskRows { get; private set; } = new();
     public int Total { get; private set; }
@@ -188,15 +193,40 @@ public class ReportsModel : PageModel
         }
         if (Section == "overview")
         {
-            // Actual completion is based on recorded completion dates; planned is target dates.
-            var dates = await filtered.Select(r => new { r.DeliverableTargetDate, r.DeliverableActualCompletedDate }).ToListAsync();
-            var todayDate = DateOnly.FromDateTime(DateTime.UtcNow);
-            CompletionTrend = Enumerable.Range(0, 6).Select(i => {
-                var start = todayDate.AddMonths(i - 5);
-                var monthStart = new DateOnly(start.Year, start.Month, 1);
-                var monthEnd = monthStart.AddMonths(1);
-                return new TrendRow(monthStart.ToString("MMM yy"), dates.Count(d => d.DeliverableTargetDate >= monthStart && d.DeliverableTargetDate < monthEnd), dates.Count(d => d.DeliverableActualCompletedDate >= monthStart && d.DeliverableActualCompletedDate < monthEnd));
-            }).ToList();
+            var month = new DateOnly(today.Year, today.Month, 1);
+            var start = month.AddMonths(-5);
+            var end = month.AddMonths(1).AddDays(-1);
+            if (TrendPeriod is not ("3" or "6" or "12" or "year" or "prev" or "custom")) TrendPeriod = "6";
+            switch (TrendPeriod)
+            {
+                case "3": start = month.AddMonths(-2); break;
+                case "12": start = month.AddMonths(-11); break;
+                case "year": start = new DateOnly(today.Year, 1, 1); break;
+                case "prev": start = new DateOnly(today.Year - 1, 1, 1); end = new DateOnly(today.Year - 1, 12, 31); break;
+                case "custom":
+                    if (!TrendFrom.HasValue || !TrendTo.HasValue || TrendFrom > TrendTo)
+                        TrendError = "Enter a valid start and end date.";
+                    else { start = TrendFrom.Value; end = TrendTo.Value; }
+                    break;
+            }
+            var months = (end.Year - start.Year) * 12 + end.Month - start.Month + 1;
+            if (months > 120) TrendError = "Select a range of at most 120 calendar months.";
+            if (TrendError == null)
+            {
+                TrendRange = $"{start:dd MMM yyyy} – {end:dd MMM yyyy}";
+                var dates = await filtered.Where(r =>
+                    (r.DeliverableTargetDate >= start && r.DeliverableTargetDate <= end) ||
+                    (r.DeliverableActualCompletedDate >= start && r.DeliverableActualCompletedDate <= end))
+                    .Select(r => new { r.DeliverableTargetDate, r.DeliverableActualCompletedDate }).ToListAsync();
+                var firstMonth = new DateOnly(start.Year, start.Month, 1);
+                CompletionTrend = Enumerable.Range(0, months).Select(i => {
+                    var m = firstMonth.AddMonths(i);
+                    var last = new DateOnly(m.Year, m.Month, DateTime.DaysInMonth(m.Year, m.Month));
+                    var lo = m < start ? start : m;
+                    var hi = last > end ? end : last;
+                    return new TrendRow(m.ToString("MMM yy"), dates.Count(d => d.DeliverableTargetDate >= lo && d.DeliverableTargetDate <= hi), dates.Count(d => d.DeliverableActualCompletedDate >= lo && d.DeliverableActualCompletedDate <= hi));
+                }).ToList();
+            }
         }
         if (Section is "delays" or "management")
         {
